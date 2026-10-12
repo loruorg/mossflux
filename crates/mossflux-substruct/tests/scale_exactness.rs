@@ -10,10 +10,10 @@
 //! # Sizing
 //!
 //! The brute oracle costs `O(n · |battery| · brute_per_mol)`, so the default size
-//! is modest. Set `MOSSFLUX_STAGE5_N` for a heavier release-mode run:
+//! is modest. Set `MOSSFLUX_SCALE_N` for a heavier release-mode run:
 //!
 //! ```text
-//! MOSSFLUX_STAGE5_N=100000 cargo test -p mossflux-substruct --release \
+//! MOSSFLUX_SCALE_N=100000 cargo test -p mossflux-substruct --release \
 //!     --test scale_exactness -- --nocapture
 //! ```
 //!
@@ -26,12 +26,12 @@ use std::time::Instant;
 
 /// Default corpus size: large enough that the transpose spans many column words
 /// and low-selectivity queries take the parallel-verify path. Override with
-/// `MOSSFLUX_STAGE5_N`.
+/// `MOSSFLUX_SCALE_N`.
 const DEFAULT_N: usize = 20_000;
 
-/// Resolve the corpus size from `MOSSFLUX_STAGE5_N`, falling back to [`DEFAULT_N`].
+/// Resolve the corpus size from `MOSSFLUX_SCALE_N`, falling back to [`DEFAULT_N`].
 fn corpus_size() -> usize {
-    std::env::var("MOSSFLUX_STAGE5_N")
+    std::env::var("MOSSFLUX_SCALE_N")
         .ok()
         .and_then(|s| s.parse().ok())
         .filter(|&n: &usize| n > 0)
@@ -276,7 +276,7 @@ fn scale_search_equals_brute_force_and_screen_prunes() {
     let screen_bpm = screen_bytes as f64 / n as f64;
     let graph_bpm = graph_bytes as f64 / n as f64;
     println!(
-        "\n[stage5 scale] n = {n} molecules\n  \
+        "\n[scale scale] n = {n} molecules\n  \
          build      : {build:?}  ({:.1} mol/ms)\n  \
          battery    : {} queries x {n} mols = {total_pairs} pairs in {sweep:?} \
          ({total_hits} oracle hits)\n  \
@@ -327,7 +327,7 @@ fn memory_is_roughly_linear_in_corpus_size() {
     let bpm_big = idx_big.mem_bytes() as f64 / big as f64;
 
     println!(
-        "\n[stage5 linearity] bytes/molecule: n={base} -> {bpm_small:.1}, \
+        "\n[scale linearity] bytes/molecule: n={base} -> {bpm_small:.1}, \
          n={big} -> {bpm_big:.1}  (ratio {:.3})",
         bpm_big / bpm_small
     );

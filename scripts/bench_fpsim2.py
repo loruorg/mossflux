@@ -5,7 +5,7 @@ Loads an FPSim2 HDF5 index fully into memory and times threshold search,
 SEARCH-ONLY and warm. FPSim2 uses the same BitBound + popcount approach as mossflux,
 so this is the closest apples-to-apples comparison to a production specialist tool.
 
-SEARCH-ONLY is enforced honestly: the query fingerprints are pre-generated as
+SEARCH-ONLY is enforced: the query fingerprints are pre-generated as
 RDKit ExplicitBitVects (using the SAME Morgan params stored in the .h5) BEFORE the
 timer, and `similarity()` is called with the precomputed ExplicitBitVect — so the
 timed region excludes RDKit parse + Morgan generation. For transparency the script

@@ -66,7 +66,7 @@ variables are read in `crates/mossflux-substruct/tests/`.
 | --- | --- | --- |
 | `MOSSFLUX_FUZZ_CHEMBL` | unset (109 embedded molecules) | Adds real molecules from a decompressed file, absolute path. |
 | `MOSSFLUX_FUZZ_CHEMBL_N` | 3000 when the above is set | Sample size. Cost grows about quadratically: start at 200. |
-| `MOSSFLUX_STAGE5_N` | 20,000 | Corpus size for `scale_exactness.rs`. |
+| `MOSSFLUX_SCALE_N` | 20,000 | Corpus size for `scale_exactness.rs`. |
 | `MOSSFLUX_RDKIT_PYTHON` | unset (reports not run) | Python with `rdkit`. When set, a broken interpreter fails. |
 
 `MOSSFLUX_DETERMINISM_CHILD` and `MOSSFLUX_DIGEST` are internal; do not set them.
@@ -75,7 +75,7 @@ variables are read in `crates/mossflux-substruct/tests/`.
 gzcat data/chembl_37_chemreps.txt.gz | head -20001 > /tmp/chembl_sample.tsv
 MOSSFLUX_FUZZ_CHEMBL=/tmp/chembl_sample.tsv MOSSFLUX_FUZZ_CHEMBL_N=200 \
   cargo test --release -p mossflux-substruct --test differential_fuzz -- --nocapture
-MOSSFLUX_STAGE5_N=100000 \
+MOSSFLUX_SCALE_N=100000 \
   cargo test --release -p mossflux-substruct --test scale_exactness -- --nocapture
 MOSSFLUX_RDKIT_PYTHON=$PWD/.venv/bin/python \
   cargo test --release -p mossflux-substruct --test rdkit_reference -- --nocapture

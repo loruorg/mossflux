@@ -274,7 +274,7 @@
      ===================================================================== */
 
   /* Twelve real ChEMBL rows spanning popcount 38 to 112. The rotation opens on
-     the honest weak case: at popcount 47, near this arena's median, the band at
+     the weak case: at popcount 47, near this arena's median, the band at
      t=0.700 still admits 85% of the records. The tight bands come second. */
   var QUERIES = [1524, 3011, 962, 3066, 2414, 1586, 3054, 654, 3062, 1936, 2136, 2275];
   var ROW_PITCH = 3;   // 2px mark + 1px gap
