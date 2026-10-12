@@ -1,8 +1,8 @@
-// Generate the landing-page background videos with Seedance through LLM Gateway.
+// Generate the landing-page background videos through LLM Gateway.
 //
 //   LLM_API_KEY=... node scripts/site/gen_videos.mjs [theme-id ...] [--orient l|p]
 //
-// One landscape (1280x720) and one portrait (720x1280) clip per theme in
+// One landscape (1920x1080) and one portrait (1080x1920) clip per theme in
 // themes.json, no audio. Job ids are written to out/jobs.json the moment a job
 // is accepted, so a rerun resumes polling and never pays for the same clip twice.
 // Finished clips land in out/<theme>-<l|p>.mp4 and are skipped on later runs.
@@ -18,7 +18,7 @@ const BASE = (process.env.LLM_API_ENDPOINT || 'https://api.llmgateway.io/v1').re
 const KEY = process.env.LLM_API_KEY;
 if (!KEY) { console.error('LLM_API_KEY is not set'); process.exit(2); }
 
-const SIZES = { l: '1280x720', p: '720x1280' };
+const SIZES = { l: '1920x1080', p: '1080x1920' };
 const cfg = JSON.parse(await fs.readFile(path.join(here, 'themes.json'), 'utf8'));
 
 const args = process.argv.slice(2);

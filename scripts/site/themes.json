@@ -1,51 +1,31 @@
 {
-  "seconds": 6,
-  "model": "seedance-2-5",
-  "style": "One continuous shot with no cuts and no transitions. The camera moves slowly and steadily in one direction for the whole clip, with no shake. Vivid low-key cinematic look: deep green-black shadows set against luminous, saturated emerald greens and glowing warm brass-gold highlights, strong contrast, crisp detail, shallow depth of field, fine film grain. No text, no letters, no numbers, no logos, no watermark, no people.",
+  "seconds": 8,
+  "model": "veo-3.1-generate-preview",
+  "style": "Photorealistic, real-world footage shot on a cinema camera with a macro lens. One continuous shot, no cuts. Constant, clearly visible motion for the whole clip. Low-key look: near-black shadows, rich deep greens and a few bright emerald highlights, strong contrast, crisp detail, shallow depth of field. No text, no letters, no logos, no watermark, no people, no hands.",
   "framing": {
-    "l": "Keep the left third and the bottom of the frame dark and calm, as negative space. The brightest detail sits right of center.",
-    "p": "Keep the bottom half of the frame dark and calm, as negative space. The brightest detail sits in the upper half."
+    "l": "Keep the left half of the frame darker and calm, as space for text. The brightest detail sits right of center.",
+    "p": "Keep the bottom half of the frame darker and calm, as space for text. The brightest detail sits in the upper half."
   },
   "themes": [
     {
-      "id": "moss",
-      "name": "Moss on basalt",
-      "prompt": "Extreme macro at ground level of a dense carpet of moss on wet black basalt. Thin sporophyte stalks rise from it, each tipped with a small brass-coloured capsule, and dew droplets glint. Low raking light from the right. The camera glides slowly forward just above the moss."
+      "id": "mycelium",
+      "name": "Mycelium network",
+      "prompt": "Time-lapse macro of real white-green fungal mycelium spreading across dark wet forest soil: fine threads branch, grow toward each other and fuse into a glowing web that links small plant roots. The camera pushes in slowly."
     },
     {
-      "id": "cells",
-      "name": "Chloroplast streaming",
-      "prompt": "Dark-field microscope view of moss leaf cells: rows of long cells with glowing green chloroplasts drifting in slow streams along the cell walls, against near-black. A faint warm rim light on the cell walls. The camera pushes in slowly."
+      "id": "fern",
+      "name": "Fern unfurling",
+      "prompt": "Time-lapse of a real fern fiddlehead slowly unrolling into a bright green frond in a dark forest, beads of dew catching a soft green light, other young fronds unfurling behind it. The camera drifts slowly upward."
     },
     {
-      "id": "molecules",
-      "name": "Glass and brass molecules",
-      "prompt": "Abstract ball-and-stick molecular models floating at different depths in a green-black void. Atoms are smoked-glass spheres and brushed-brass spheres, bonds are thin brass rods, and some molecules have hexagonal rings. The camera dollies slowly forward between them while they turn very slowly."
+      "id": "roots",
+      "name": "Roots over basalt",
+      "prompt": "Time-lapse macro of real pale-green plant roots and moss creeping across black volcanic basalt, the root tips branching and joining into a connected network, wet stone glistening. The camera glides slowly sideways."
     },
     {
-      "id": "bitfield",
-      "name": "Bit field",
-      "prompt": "A vast dark plane covered edge to edge with a fine grid of tiny rectangular cells. Most cells are dark, some glow pale green, a few glow warm brass, like an endless field of binary data. Low angle, rows recede to a misty horizon. The camera flies slowly forward, low over the grid."
-    },
-    {
-      "id": "ink",
-      "name": "Ink flux",
-      "prompt": "Macro of dark green ink and metallic brass pigment unfolding in black water. Slow silky plumes fold and curl into each other. The camera drifts slowly forward through the plumes."
-    },
-    {
-      "id": "aerial",
-      "name": "Moss lava field",
-      "prompt": "Aerial shot at dusk over an Icelandic lava field covered in thick green moss, with mist pooled in the hollows and the last warm brass light along the horizon. The drone flies slowly forward and descends a little."
-    },
-    {
-      "id": "vials",
-      "name": "Vial rack",
-      "prompt": "A dim chemistry lab at night. A long rack of small glass vials filled with softly luminous green liquid, with brass caps and caustic reflections on a dark bench. The camera tracks slowly sideways along the rack, with shallow focus."
-    },
-    {
-      "id": "forest",
-      "name": "Forest floor",
-      "prompt": "Old-growth forest floor at dawn: fallen logs and stones under thick moss, low fog, and thin shafts of warm light between the trunks. The camera rises slowly from ground level."
+      "id": "glow",
+      "name": "Glowing fungi",
+      "prompt": "Night macro of real bioluminescent mushrooms glowing soft green on a mossy fallen log in a dark forest, faint green threads of light running through the moss between them, tiny spores drifting in the air. The camera pushes in slowly."
     }
   ]
 }

@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20">
-  <!-- the mossflux mark: a BitBound band, and the query between its two edges -->
-  <rect width="20" height="20" fill="#0E120F"/>
-  <rect x="2" y="4" width="16" height="2" fill="#DDE4D7"/>
-  <rect x="2" y="14" width="16" height="2" fill="#DDE4D7"/>
-  <rect x="9.5" y="7" width="1" height="6" fill="#AE8F61"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20"><rect width="20" height="20" rx="4" fill="#030604"/><circle cx="10" cy="10" r="5" fill="#3DFF8E"/></svg>
