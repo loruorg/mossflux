@@ -75,7 +75,7 @@ Get the data with `./scripts/fetch_chembl.sh`; see
 
 ```sh
 docker run -p 8080:8080 -p 50051:50051 -v "$PWD/data:/data:ro" \
-  ghcr.io/zhom/mossflux:latest serve --db chembl=/data/chembl_37_chemreps.txt.gz
+  loruorg/mossflux:latest serve --db chembl=/data/chembl_37_chemreps.txt.gz
 
 curl -s 'localhost:8080/v1/substructure?smarts=c1ccc2[nH]ccc2c1&limit=5'
 curl -s localhost:8080/v1/similarity -H 'content-type: application/json' \

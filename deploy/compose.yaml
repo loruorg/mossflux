@@ -12,7 +12,7 @@ services:
       URL: https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_37/chembl_37_chemreps.txt.gz
 
   mossflux:
-    image: ghcr.io/zhom/mossflux:latest
+    image: loruorg/mossflux:latest
     depends_on:
       data: {condition: service_completed_successfully}
     command: ["serve"]

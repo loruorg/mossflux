@@ -36,7 +36,7 @@ spec:
           volumeMounts: [{name: data, mountPath: /data}]
       containers:
         - name: mossflux
-          image: ghcr.io/zhom/mossflux:latest
+          image: loruorg/mossflux:latest
           args: ["serve"]
           env:
             - {name: MOSSFLUX_DB, value: chembl=/data/chembl_37_chemreps.txt.gz}

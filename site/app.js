@@ -1,5 +1,6 @@
-/* mossflux.com. Scroll-scrubbed scenes, a WebGL particle explainer, a small
-   live demo. API base: API below, or ?api=<url> for local testing. */
+/* mossflux.com. One continuous WebGL particle flow behind four sections.
+   Scroll moves the flow through four shapes; light trails come from a
+   feedback buffer. API base: API below, or ?api=<url> for local testing. */
 (function () {
   'use strict';
 
@@ -13,261 +14,208 @@
   var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
   var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); };
   var clamp = function (x, a, b) { return x < a ? a : x > b ? b : x; };
-  var sstep = function (a, b, x) { var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
   var DPR = Math.min(1.5, devicePixelRatio || 1);
-  var VH = innerHeight;
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var secs = [].slice.call(doc.querySelectorAll('.sec'));
 
-  /* ------------------------------------------------------------ scenes */
-  var scenes = [].map.call(doc.querySelectorAll('.scene'), function (el) {
-    var s = {
-      el: el, p: 0, sp: 0, top: 0, h: 0, vis: false,
-      canvas: el.querySelector('canvas.seq'),
-      beats: [].map.call(el.querySelectorAll('.beat'), function (b) {
-        return { el: b, a: +b.dataset.in, b: +b.dataset.out, op: -1 };
-      }),
-      id: el.dataset.seq, n: +(el.dataset.frames || 0), imgs: [], loading: false, drawn: -1
-    };
-    if (s.canvas) { s.ctx = s.canvas.getContext('2d'); }
-    return s;
-  });
+  /* ------------------------------------------------------------ flow */
+  var flow = (function () {
+    var cv = $('flux');
+    var g = cv.getContext('webgl', { antialias: false, alpha: false, depth: false, preserveDrawingBuffer: false });
+    if (!g) { return null; }
+    var small = innerWidth < 760;
+    var N = small ? 40000 : 110000;
 
+    var VS = [
+      'attribute vec4 a_s;',
+      'uniform float u_k, u_t, u_aspect, u_px, u_off, u_stir;',
+      'varying float v_a;',
+      'const float PI = 3.14159265;',
+      'vec3 vortex(vec4 s, float t) {',
+      '  float r = 0.16 + 0.84 * pow(s.y, 0.65);',
+      '  float th = s.x * 6.2832 + t * 0.10 / (r + 0.25) + floor(s.z * 3.0) * 2.0944 + r * 2.8;',
+      '  vec3 p = vec3(cos(th) * r, (s.w - 0.5) * 0.10 * (1.15 - r), sin(th) * r);',
+      '  float tl = 1.08; p = vec3(p.x, p.y * cos(tl) - p.z * sin(tl), p.y * sin(tl) + p.z * cos(tl));',
+      '  float z = p.z + 2.3;',
+      '  return vec3(p.x * 1.7 / z / u_aspect * 1.25 + u_off, p.y * 1.7 / z + 0.02, 0.55 * (1.25 - r * 0.6));',
+      '}',
+      'vec3 lanes(vec4 s, float t) {',
+      '  float lane = floor(s.z * 9.0);',
+      '  float fast = step(8.0, lane);',
+      '  float sp = mix(0.05 + 0.25 * fract(lane * 0.618 + 0.3), 1.6, fast) * (0.8 + 0.4 * s.y);',
+      '  float x = fract(s.x + t * sp * 0.3) * 2.8 - 1.4;',
+      '  float y = -0.6 + lane * 0.15 + (s.w - 0.5) * 0.05 + 0.02 * sin(x * 3.0 + lane + t);',
+      '  float pk = smoothstep(0.55, 1.0, fract(s.x * 5.0 + s.y * 0.15));',
+      '  return vec3(x, y, (0.5 + 0.5 * fast) * (0.2 + 0.8 * pk));',
+      '}',
+      'vec3 band(vec4 s, float t) {',
+      '  float v = (s.x + s.y + s.z) / 3.0;',
+      '  float col = floor(v * 96.0) / 96.0;',
+      '  float h = exp(-pow((col - 0.5) / 0.11, 2.0)) * 1.25;',
+      '  float y = -0.72 + fract(s.w + t * 0.03) * h;',
+      '  float inb = step(0.565, col) * step(col, 0.635);',
+      '  return vec3((col - 0.5) * 2.4 + u_off * 0.4, y, mix(0.05, 0.5, inb));',
+      '}',
+      'vec3 field(vec4 s, float t) {',
+      '  float gx = s.x - 0.5, gz = fract(s.y - t * 0.025);',
+      '  float z = 0.25 + gz * 5.0, x = gx * 9.0;',
+      '  float y = -0.5 + 0.06 * sin(gx * 18.0 + t * 0.7 + gz * 9.0) + 0.04 * sin(s.z * 40.0 + t);',
+      '  return vec3(x / z * 0.9, y / z * 0.9 + 0.12, 0.5 * (1.0 - gz) * (1.0 - gz));',
+      '}',
+      'vec3 form(float k, vec4 s, float t) {',
+      '  if (k < 0.5) return vortex(s, t);',
+      '  if (k < 1.5) return lanes(s, t);',
+      '  if (k < 2.5) return band(s, t);',
+      '  return field(s, t);',
+      '}',
+      'void main() {',
+      '  float i = floor(u_k), f = u_k - i;',
+      '  float m = clamp((f - 0.5) * 1.7 + 0.5 + (a_s.w - 0.5) * 0.7, 0.0, 1.0);',
+      '  m = m * m * (3.0 - 2.0 * m);',
+      '  vec3 A = form(i, a_s, u_t), B = form(min(i + 1.0, 3.0), a_s, u_t);',
+      '  vec3 p = mix(A, B, m);',
+      '  float sw = sin(m * PI);',
+      '  vec2 q = p.xy * 2.3 + vec2(a_s.z * 6.0, a_s.x * 6.0);',
+      '  vec2 curl = vec2(sin(q.y + u_t * 0.7), cos(q.x * 1.3 - u_t * 0.5));',
+      '  p.xy += curl * (sw * 0.22 + u_stir * 0.02 + 0.006);',
+      '  v_a = p.z * (1.0 + sw * 0.6);',
+      '  gl_Position = vec4(p.xy, 0.0, 1.0);',
+      '  gl_PointSize = u_px * (1.0 + sw * 0.6);',
+      '}'
+    ].join('\n');
+    var FS = 'precision mediump float; varying float v_a; void main() { float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(vec3(v_a * smoothstep(0.5, 0.0, d) * 0.42), 1.0); }';
+    var QV = 'attribute vec2 a_p; varying vec2 v_uv; void main() { v_uv = a_p * 0.5 + 0.5; gl_Position = vec4(a_p, 0.0, 1.0); }';
+    var FADE = 'precision mediump float; uniform sampler2D u_tex; uniform float u_decay; varying vec2 v_uv; void main() { vec3 c = texture2D(u_tex, v_uv).rgb; gl_FragColor = vec4(max(c * u_decay - 0.006, 0.0), 1.0); }';
+    var SHOW = 'precision mediump float; uniform sampler2D u_tex; varying vec2 v_uv; void main() { vec3 c = texture2D(u_tex, v_uv).rgb; float l = dot(c, vec3(0.333)); l = 1.0 - exp(-l * 1.6); float vg = smoothstep(1.25, 0.35, length(v_uv - 0.5) * 1.6); gl_FragColor = vec4(vec3(l * vg), 1.0); }';
+
+    function prog(vs, fs) {
+      var p = g.createProgram();
+      [[g.VERTEX_SHADER, vs], [g.FRAGMENT_SHADER, fs]].forEach(function (x) {
+        var s = g.createShader(x[0]); g.shaderSource(s, x[1]); g.compileShader(s);
+        if (!g.getShaderParameter(s, g.COMPILE_STATUS)) { throw new Error(g.getShaderInfoLog(s)); }
+        g.attachShader(p, s);
+      });
+      g.linkProgram(p);
+      return p;
+    }
+    var P, F, S;
+    try { P = prog(VS, FS); F = prog(QV, FADE); S = prog(QV, SHOW); } catch (e) { return null; }
+
+    var seeds = new Float32Array(N * 4), r = 1;
+    for (var i = 0; i < N * 4; i++) { r = (r * 16807) % 2147483647; seeds[i] = r / 2147483647; }
+    var sb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, sb); g.bufferData(g.ARRAY_BUFFER, seeds, g.STATIC_DRAW);
+    var qb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, qb); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
+    var U = {};
+    ['u_k', 'u_t', 'u_aspect', 'u_px', 'u_off', 'u_stir'].forEach(function (n) { U[n] = g.getUniformLocation(P, n); });
+
+    var fb = [], tx = [], W = 0, H = 0, cur = 0;
+    function target(w, h) {
+      tx.forEach(function (t) { g.deleteTexture(t); }); fb.forEach(function (f) { g.deleteFramebuffer(f); });
+      tx = []; fb = [];
+      for (var j = 0; j < 2; j++) {
+        var t = g.createTexture(); g.bindTexture(g.TEXTURE_2D, t);
+        g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, w, h, 0, g.RGBA, g.UNSIGNED_BYTE, null);
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
+        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
+        var f = g.createFramebuffer(); g.bindFramebuffer(g.FRAMEBUFFER, f);
+        g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0, g.TEXTURE_2D, t, 0);
+        g.clearColor(0, 0, 0, 1); g.clear(g.COLOR_BUFFER_BIT);
+        tx.push(t); fb.push(f);
+      }
+    }
+    function resize() {
+      W = Math.round(cv.clientWidth * DPR); H = Math.round(cv.clientHeight * DPR);
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; target(W, H); }
+    }
+    function quad(p) {
+      g.bindBuffer(g.ARRAY_BUFFER, qb);
+      var l = g.getAttribLocation(p, 'a_p'); g.enableVertexAttribArray(l); g.vertexAttribPointer(l, 2, g.FLOAT, false, 0, 0);
+      g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+    }
+    function frame(k, t, stir) {
+      var nxt = 1 - cur;
+      g.bindFramebuffer(g.FRAMEBUFFER, fb[nxt]); g.viewport(0, 0, W, H);
+      g.disable(g.BLEND);
+      g.useProgram(F); g.activeTexture(g.TEXTURE0); g.bindTexture(g.TEXTURE_2D, tx[cur]);
+      g.uniform1i(g.getUniformLocation(F, 'u_tex'), 0); g.uniform1f(g.getUniformLocation(F, 'u_decay'), 0.9);
+      quad(F);
+      g.enable(g.BLEND); g.blendFunc(g.ONE, g.ONE);
+      g.useProgram(P);
+      g.bindBuffer(g.ARRAY_BUFFER, sb);
+      var l = g.getAttribLocation(P, 'a_s'); g.enableVertexAttribArray(l); g.vertexAttribPointer(l, 4, g.FLOAT, false, 0, 0);
+      g.uniform1f(U.u_k, k); g.uniform1f(U.u_t, t); g.uniform1f(U.u_aspect, W / H);
+      g.uniform1f(U.u_px, (small ? 1.3 : 1.5) * DPR); g.uniform1f(U.u_off, small ? 0.0 : 0.36); g.uniform1f(U.u_stir, stir);
+      g.drawArrays(g.POINTS, 0, N);
+      g.disable(g.BLEND);
+      g.bindFramebuffer(g.FRAMEBUFFER, null); g.viewport(0, 0, W, H);
+      g.useProgram(S); g.bindTexture(g.TEXTURE_2D, tx[nxt]); g.uniform1i(g.getUniformLocation(S, 'u_tex'), 0);
+      quad(S);
+      cur = nxt;
+    }
+    resize();
+    return { resize: resize, frame: frame };
+  })();
+
+  /* ------------------------------------------------------------ scroll */
+  var centers = [], k = 0, last = performance.now(), t = 0, lastY = scrollY, stir = 0;
   function measure() {
-    VH = innerHeight;
-    scenes.forEach(function (s) {
-      var r = s.el.getBoundingClientRect();
-      s.top = r.top + scrollY; s.h = s.el.offsetHeight;
-      if (s.canvas) {
-        s.canvas.width = Math.round(s.canvas.clientWidth * DPR);
-        s.canvas.height = Math.round(s.canvas.clientHeight * DPR);
-        s.drawn = -1;
-      }
-    });
-    gl && gl.resize();
+    var max = doc.documentElement.scrollHeight - innerHeight;
+    centers = secs.map(function (s) { return clamp(s.offsetTop + s.offsetHeight / 2 - innerHeight / 2, 0, max); });
+    centers[0] = 0; centers[centers.length - 1] = max;
+    if (flow) { flow.resize(); }
   }
-
-  // Load frames coarse to fine, so scrubbing works before all have arrived.
-  function load(s) {
-    if (s.loading || !s.id) { return; }
-    s.loading = true;
-    var order = [], seen = {};
-    [16, 8, 4, 2, 1].forEach(function (st) {
-      for (var i = 0; i < s.n; i += st) { if (!seen[i]) { seen[i] = 1; order.push(i); } }
-    });
-    if (!seen[s.n - 1]) { order.push(s.n - 1); }
-    var k = 0, live = 0;
-    function next() {
-      while (live < 6 && k < order.length) {
-        (function (i) {
-          var im = new Image();
-          live++;
-          im.decoding = 'async';
-          im.onload = function () { s.imgs[i] = im; live--; s.drawn = -1; next(); };
-          im.onerror = function () { live--; next(); };
-          im.src = 'seq/' + s.id + '/' + String(i + 1).padStart(3, '0') + '.webp';
-        })(order[k++]);
-      }
+  function targetK(y) {
+    for (var i = 0; i < centers.length - 1; i++) {
+      if (y <= centers[i + 1]) { return i + clamp((y - centers[i]) / Math.max(1, centers[i + 1] - centers[i]), 0, 1); }
     }
-    next();
+    return centers.length - 1;
   }
-  function near(s, i, dir) {
-    for (var d = 0; d < s.n; d++) {
-      var j = i + d * dir;
-      if (j >= 0 && j < s.n && s.imgs[j]) { return j; }
-      j = i - d * dir;
-      if (j >= 0 && j < s.n && s.imgs[j]) { return j; }
-    }
-    return -1;
-  }
-  function cover(ctx, im, cw, ch) {
-    var sc = Math.max(cw / im.width, ch / im.height), w = im.width * sc, h = im.height * sc;
-    ctx.drawImage(im, (cw - w) / 2, (ch - h) / 2, w, h);
-  }
-  function drawSeq(s) {
-    var f = s.sp * (s.n - 1), i0 = Math.floor(f), fr = f - i0;
-    var key = Math.round(f * 8);
-    if (key === s.drawn) { return; }
-    var a = near(s, i0, -1), b = near(s, Math.min(s.n - 1, i0 + 1), 1);
-    if (a < 0) { return; }
-    s.drawn = key;
-    var c = s.ctx, cw = s.canvas.width, ch = s.canvas.height;
-    c.globalAlpha = 1;
-    c.fillStyle = '#000'; c.fillRect(0, 0, cw, ch);
-    cover(c, s.imgs[a], cw, ch);
-    if (b >= 0 && b !== a && fr > 0.02) { c.globalAlpha = fr; cover(c, s.imgs[b], cw, ch); c.globalAlpha = 1; }
-  }
-  function beats(s) {
-    s.beats.forEach(function (bt) {
-      var fin = bt.a <= 0 ? 1 : sstep(bt.a, bt.a + 0.07, s.sp);
-      var fout = bt.b >= 1 ? 1 : 1 - sstep(bt.b - 0.07, bt.b, s.sp);
-      var op = Math.min(fin, fout);
-      if (Math.abs(op - bt.op) < 0.002) { return; }
-      bt.op = op;
-      bt.el.style.opacity = op.toFixed(3);
-      bt.el.style.visibility = op < 0.01 ? 'hidden' : 'visible';
-      var y = (1 - op) * (fin < 1 ? 28 : -28);
-      bt.el.style.translate = '0 ' + y.toFixed(1) + 'px';
-      if (bt.onShow && op > 0.6 && !bt.shown) { bt.shown = true; bt.onShow(); }
-      if (op < 0.05) { bt.shown = false; }
+  function sections() {
+    var vh = innerHeight;
+    secs.forEach(function (s) {
+      var r = s.getBoundingClientRect();
+      var v = clamp(Math.min(r.bottom - vh * 0.22, vh * 0.78 - r.top) / (vh * 0.42), 0, 1);
+      var inn = s.firstElementChild;
+      if (Math.abs((+inn.dataset.v || -1) - v) < 0.003) { return; }
+      inn.dataset.v = v;
+      inn.style.setProperty('--v', v.toFixed(3));
+      inn.style.setProperty('--dir', r.top > 0 ? 1 : -1);
+      inn.style.visibility = v < 0.01 ? 'hidden' : 'visible';
     });
   }
-
-  var last = performance.now();
   function tick(now) {
-    var dt = Math.min(64, now - last); last = now;
-    var y = scrollY, k = 1 - Math.pow(0.86, dt / 16.7);
-    scenes.forEach(function (s) {
-      var span = Math.max(1, s.h - VH);
-      s.p = clamp((y - s.top) / span, 0, 1);
-      s.sp += (s.p - s.sp) * k;
-      if (Math.abs(s.p - s.sp) < 0.0004) { s.sp = s.p; }
-      var vis = y + VH > s.top - VH * 1.5 && y < s.top + s.h + VH * 0.5;
-      if (vis) { load(s); }
-      s.vis = y + VH > s.top && y < s.top + s.h;
-      if (!s.vis) { return; }
-      if (s.canvas) { drawSeq(s); }
-      beats(s);
-      if (s.onFrame) { s.onFrame(s, now); }
-    });
-    ticker(now);
+    var dt = Math.min(50, now - last) / 1000; last = now;
+    var y = scrollY, kt = targetK(y);
+    k += (kt - k) * (1 - Math.pow(0.04, dt));
+    if (Math.abs(kt - k) < 0.0005) { k = kt; }
+    stir = stir * Math.pow(0.05, dt) + Math.abs(y - lastY) / innerHeight * 6; lastY = y;
+    if (!reduce) { t += dt; }
+    if (flow) { flow.frame(k, t, Math.min(stir, 3)); }
+    sections();
     requestAnimationFrame(tick);
   }
 
-  /* ------------------------------------------------------------ ticker */
-  var t0 = performance.now(), tk = $('ticker'), RATE = 1.45e9;
-  function ticker(now) {
-    if (!tk) { return; }
-    tk.textContent = fmt((now - t0) / 1000 * RATE);
-  }
-
-  /* ------------------------------------------------------------ WebGL */
-  // ChEMBL 37, 2048-bit Morgan r=2: molecules per popcount 0..160.
-  var HIST = [0,49,52,33,50,75,127,99,232,210,281,410,373,739,782,1017,1544,1711,2096,2971,3440,4529,5346,6597,7471,9483,11070,13295,15876,18100,21655,25251,28815,33588,38279,42354,47408,52490,57306,62469,67458,71395,75542,78787,81783,84848,86500,88335,89507,89674,88486,87305,84916,83053,80975,78385,75299,72009,68967,65594,62006,58907,55657,52208,48367,45043,41681,37707,34800,31152,28696,25664,23411,20581,18658,16953,14942,13220,11806,10555,9229,8105,7132,6430,5659,5447,4758,4220,3960,3744,3476,3264,3271,2910,3075,2872,3259,2474,2376,2296,2092,2004,1783,1744,1679,1572,1532,1620,1355,1409,1296,1193,1059,1128,1002,867,842,813,774,750,699,664,678,633,565,588,550,448,459,452,401,390,345,347,345,313,313,305,265,356,247,300,301,229,220,243,265,236,176,188,178,138,157,116,147,128,126,121,108,109,107];
-  var gl = null;
-  (function initGL() {
-    var scene = scenes.filter(function (s) { return s.el.dataset.gl; })[0];
-    var cv = $('gl');
-    if (!scene || !cv) { return; }
-    var g = cv.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false });
-    if (!g) { return; }
-    var small = innerWidth < 720;
-    var N = small ? 26000 : 70000;
-    var LO = 68, HI = 94, Q = 80, MAXP = 120;
-
-    // Sample popcounts from the real histogram.
-    var hist = HIST.slice(); var tail = 0;
-    for (var i = MAXP + 1; i < hist.length; i++) { tail += hist[i]; }
-    hist = hist.slice(0, MAXP + 1); hist[MAXP] += tail;
-    var cdf = [], acc = 0, tot = hist.reduce(function (a, b) { return a + b; }, 0);
-    hist.forEach(function (v) { acc += v / tot; cdf.push(acc); });
-    var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-    function pop() { var u = rnd(), lo = 0, hi = cdf.length - 1; while (lo < hi) { var m = (lo + hi) >> 1; if (cdf[m] < u) { lo = m + 1; } else { hi = m; } } return lo; }
-
-    var pops = new Float32Array(N), cnt = new Int32Array(MAXP + 1);
-    for (i = 0; i < N; i++) { pops[i] = pop(); cnt[pops[i]]++; }
-    var maxc = Math.max.apply(null, Array.prototype.slice.call(cnt));
-    var rank = new Int32Array(MAXP + 1);
-    var cloud = new Float32Array(N * 3), histp = new Float32Array(N * 2), sd = new Float32Array(N), hit = new Float32Array(N), pp = new Float32Array(N);
-    var X0 = small ? -0.92 : -0.86, X1 = -X0, Y0 = small ? -0.05 : -0.62, Y1 = small ? 0.6 : 0.62;
-    for (i = 0; i < N; i++) {
-      var p = pops[i];
-      // Cloud: a slowly turning disc of clusters.
-      var r = Math.pow(rnd(), 0.6) * 1.05, a = rnd() * Math.PI * 2, arm = Math.floor(rnd() * 5);
-      a += arm * 1.2566 + r * 2.2;
-      cloud[i * 3] = Math.cos(a) * r; cloud[i * 3 + 1] = (rnd() - 0.5) * 0.18 * (1.2 - r); cloud[i * 3 + 2] = Math.sin(a) * r;
-      var cw = (X1 - X0) / (MAXP + 1);
-      histp[i * 2] = X0 + (p + 0.15 + rnd() * 0.7) * cw;
-      histp[i * 2 + 1] = Y0 + (rank[p]++ / maxc) * (Y1 - Y0);
-      sd[i] = rnd(); pp[i] = p;
-      hit[i] = (p >= LO && p <= HI && rnd() < 0.012 * Math.exp(-Math.pow((p - Q) / 9, 2))) ? 1 : 0;
-    }
-
-    var vs = [
-      'attribute vec3 a_cloud; attribute vec2 a_hist; attribute float a_seed; attribute float a_pop; attribute float a_hit;',
-      'uniform float u_morph, u_band, u_hits, u_time, u_aspect, u_px, u_rot, u_lo, u_hi;',
-      'varying float v_a; varying float v_h;',
-      'void main() {',
-      '  float an = u_time * 0.05 + u_rot;',
-      '  vec3 c = a_cloud; float cs = cos(an), sn = sin(an);',
-      '  c.xz = vec2(c.x * cs - c.z * sn, c.x * sn + c.z * cs);',
-      '  float ti = 0.42; float cy = c.y * cos(ti) - c.z * sin(ti); float cz = c.y * sin(ti) + c.z * cos(ti);',
-      '  float z = cz + 2.6; vec2 cp = vec2(c.x, cy) * (2.1 / z); cp.x /= u_aspect;',
-      '  float m = clamp(u_morph * 1.7 - a_seed * 0.7, 0.0, 1.0); m = m * m * (3.0 - 2.0 * m);',
-      '  vec2 p = mix(cp, a_hist, m);',
-      '  float inb = step(u_lo, a_pop) * step(a_pop, u_hi);',
-      '  float o = (1.0 - inb) * u_band;',
-      '  p.y -= o * o * (0.25 + a_seed * 0.9);',
-      '  p.x += o * (a_seed - 0.5) * 0.08;',
-      '  float al = mix(0.42, 0.36, m) * (1.0 - o * 0.94) + inb * u_band * 0.22;',
-      '  float h = a_hit * u_hits * (0.8 + 0.2 * sin(u_time * 5.0 + a_seed * 40.0));',
-      '  v_a = mix(al, 1.0, h); v_h = h;',
-      '  gl_Position = vec4(p, 0.0, 1.0);',
-      '  gl_PointSize = u_px * (1.0 + (1.0 - m) * (2.1 / z - 0.7) * 0.9 + h * 7.0);',
-      '}'
-    ].join('\n');
-    var fs = [
-      'precision mediump float; varying float v_a; varying float v_h;',
-      'void main() {',
-      '  float d = length(gl_PointCoord - 0.5);',
-      '  float core = smoothstep(0.5, 0.15, d);',
-      '  float glow = exp(-d * d * 18.0) * v_h;',
-      '  gl_FragColor = vec4(vec3(1.0), (core * (1.0 - v_h) + glow + core * v_h) * v_a);',
-      '}'
-    ].join('\n');
-    function sh(t, src) { var o = g.createShader(t); g.shaderSource(o, src); g.compileShader(o); return o; }
-    var pr = g.createProgram();
-    g.attachShader(pr, sh(g.VERTEX_SHADER, vs)); g.attachShader(pr, sh(g.FRAGMENT_SHADER, fs));
-    g.linkProgram(pr);
-    if (!g.getProgramParameter(pr, g.LINK_STATUS)) { return; }
-    g.useProgram(pr);
-    function attr(name, data, size) {
-      var b = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, b); g.bufferData(g.ARRAY_BUFFER, data, g.STATIC_DRAW);
-      var l = g.getAttribLocation(pr, name); g.enableVertexAttribArray(l); g.vertexAttribPointer(l, size, g.FLOAT, false, 0, 0);
-    }
-    attr('a_cloud', cloud, 3); attr('a_hist', histp, 2); attr('a_seed', sd, 1); attr('a_pop', pp, 1); attr('a_hit', hit, 1);
-    var U = {};
-    ['u_morph', 'u_band', 'u_hits', 'u_time', 'u_aspect', 'u_px', 'u_rot', 'u_lo', 'u_hi'].forEach(function (n) { U[n] = g.getUniformLocation(pr, n); });
-    g.uniform1f(U.u_lo, LO - 0.5); g.uniform1f(U.u_hi, HI + 0.5);
-    g.enable(g.BLEND); g.blendFunc(g.SRC_ALPHA, g.ONE);
-
-    // Band edges and the query mark, in the same coordinates as the histogram.
-    var stage = scene.el.querySelector('.stage');
-    function edge(p, label, cls) {
-      var d = doc.createElement('div'); d.className = 'edge ' + (cls || '');
-      d.style.cssText = 'position:absolute;z-index:1;top:' + ((1 - Y1) / 2 * 100) + '%;bottom:' + ((1 + Y0) / 2 * 100) + '%;width:1px;background:#fff;opacity:0;pointer-events:none;';
-      d.style.left = ((X0 + (p + 0.5) * (X1 - X0) / (MAXP + 1) + 1) / 2 * 100) + '%';
-      d.innerHTML = '<span style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font:11px Tabular,monospace;color:#fff;white-space:nowrap">' + label + '</span>';
-      stage.appendChild(d); return d;
-    }
-    var eLo = edge(LO - 0.5, String(LO)), eHi = edge(HI + 0.5, String(HI)), eQ = edge(Q, 'query', 'q');
-    eQ.style.background = 'repeating-linear-gradient(#fff 0 4px, transparent 4px 8px)';
-    var read = $('gl-read');
-
-    gl = {
-      resize: function () {
-        cv.width = Math.round(cv.clientWidth * DPR); cv.height = Math.round(cv.clientHeight * DPR);
-        g.viewport(0, 0, cv.width, cv.height);
-      }
-    };
-    gl.resize();
-    scene.onFrame = function (s, now) {
-      var sp = s.sp;
-      var morph = sstep(0.16, 0.44, sp), band = sstep(0.5, 0.64, sp), hits = sstep(0.76, 0.88, sp);
-      g.clearColor(0, 0, 0, 1); g.clear(g.COLOR_BUFFER_BIT);
-      g.uniform1f(U.u_morph, morph); g.uniform1f(U.u_band, band); g.uniform1f(U.u_hits, hits);
-      g.uniform1f(U.u_time, now / 1000); g.uniform1f(U.u_rot, sp * 3.0);
-      g.uniform1f(U.u_aspect, cv.width / cv.height); g.uniform1f(U.u_px, (small ? 1.6 : 1.9) * DPR);
-      g.drawArrays(g.POINTS, 0, N);
-      var eo = (band * (1 - hits * 0.4)).toFixed(3);
-      eLo.style.opacity = eHi.style.opacity = eo;
-      eQ.style.opacity = (sstep(0.46, 0.56, sp) * 0.8).toFixed(3);
-      var txt = sp < 0.2 ? '2,897,819 fingerprints · 2,048 bits each'
-        : sp < 0.48 ? 'sorted by popcount · 1 → 120+'
-        : sp < 0.76 ? 'query popcount 80 · Tanimoto ≥ 0.85\nband 68–94 · 88.8% never read'
-        : 'band scored exactly · every hit found';
-      if (read.textContent !== txt) { read.textContent = txt; }
-    };
-  })();
+  /* ------------------------------------------------------------ charts */
+  var CH = {
+    chembl: { unit: 'M/s', rows: [['mossflux', 273.4, 1], ['FPSim2', 80.3], ['RDKit, bulk', 5.47], ['RDKit, loop', 0.62]] },
+    arthor: { unit: 'B/s', rows: [['mossflux', 1.45, 1], ['Arthor', 1.2, 0, 0.9]] }
+  };
+  [].forEach.call(doc.querySelectorAll('.chart'), function (fig) {
+    var c = CH[fig.dataset.chart], max = c.rows[0][1];
+    fig.querySelector('.bars').innerHTML = c.rows.map(function (r, i) {
+      var w = Math.max(0.6, r[1] / max * 100), lead = c.rows[0][1] / r[1];
+      var val = r[3] ? r[3] + '–' + r[1] : (r[1] < 10 ? r[1].toFixed(2) : r[1].toFixed(r[1] < 100 ? 1 : 0));
+      var tag = r[2] ? '' : '<small>' + (lead < 10 ? lead.toFixed(1) : Math.round(lead)) + '× slower</small>';
+      var range = r[3] ? '<span class="r" style="--l:' + (r[3] / max * 100) + '%;--rw:' + ((r[1] - r[3]) / max * 100) + '%"></span>' : '';
+      return '<div class="b' + (r[2] ? ' me' : '') + '" style="--i:' + i + '"><span class="n">' + r[0] + '</span><span class="tr"><span class="f" style="--w:' + w + '%"></span>' + range + '<span class="v" style="--w:' + w + '%">' + val + ' ' + c.unit + tag + '</span></span></div>';
+    }).join('');
+    if (fig.dataset.chart === 'arthor') { fig.querySelectorAll('.b')[1].querySelector('.f').style.width = (0.9 / max * 100) + '%'; }
+  });
+  var cio = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('on'); cio.unobserve(e.target); } });
+  }, { threshold: 0.4 });
+  [].forEach.call(doc.querySelectorAll('.chart'), function (f) { cio.observe(f); });
 
   /* ------------------------------------------------------------ demo */
   function api(path, body) {
@@ -366,7 +314,7 @@
     var hs = r.hits.slice();
     if (r.mode === 'sub') { hs.sort(function (a, b) { return a.smiles.length - b.smiles.length; }); }
     hs = hs.slice(0, 6);
-    var box = $('r-mols');
+    var box = $('mols');
     box.innerHTML = hs.map(function (h, i) {
       return '<a style="--i:' + i + '" href="https://www.ebi.ac.uk/chembl/compound_report_card/' + encodeURIComponent(h.id) + '/" target="_blank" rel="noopener"><svg data-s="' + esc(h.smiles) + '"></svg><span><em>' + esc(h.id) + '</em>' + (h.score != null ? '<b>' + h.score.toFixed(2) + '</b>' : '') + '</span></a>';
     }).join('');
@@ -412,35 +360,6 @@
   new IntersectionObserver(function (es, ob) {
     if (es[0].isIntersecting) { loadSD(); run(); ob.disconnect(); }
   }, { rootMargin: '0px 0px -30% 0px' }).observe($('demo'));
-
-  /* ------------------------------------------------------------ race */
-  var LANES = [['mossflux', 'BitBound', 10.6, 1], ['FPSim2', '1 worker', 36.1], ['RDKit', 'BulkTanimotoSimilarity', 530], ['RDKit', 'Python loop', 4700]];
-  var race = $('race');
-  race.innerHTML = LANES.map(function (l) {
-    return '<div class="lane' + (l[3] ? ' mf' : '') + '"><span class="nm">' + l[0] + '<small>' + l[1] + '</small></span><span class="tr"><span class="fl"></span></span><span class="t">0 ms</span></div>';
-  }).join('');
-  var lanes = race.querySelectorAll('.lane'), rraf = 0;
-  function runRace() {
-    cancelAnimationFrame(rraf);
-    var s = performance.now(), MAX = 4700;
-    (function f(t) {
-      var e = t - s, all = true;
-      lanes.forEach(function (l, i) {
-        var d = LANES[i][2], k = Math.min(e, d) / MAX;
-        l.querySelector('.fl').style.transform = 'scaleX(' + k + ')';
-        if (e < d) { all = false; l.querySelector('.t').textContent = fmt(e) + ' ms'; l.classList.remove('done'); }
-        else if (!l.classList.contains('done')) {
-          l.classList.add('done');
-          l.querySelector('.t').textContent = (d < 100 ? d.toFixed(1) : fmt(d)) + ' ms';
-          if (i) { l.querySelector('small').textContent = LANES[i][1] + ' · ' + Math.round(d / LANES[0][2]) + '× slower'; }
-        }
-      });
-      if (!all) { rraf = requestAnimationFrame(f); }
-    })(s);
-  }
-  scenes.forEach(function (s) {
-    s.beats.forEach(function (b) { if (b.el.classList.contains('race-beat')) { b.onShow = runRace; } });
-  });
 
   /* ------------------------------------------------------------ start */
   measure();

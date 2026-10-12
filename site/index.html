@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>mossflux · exact similarity search at billions of molecules per second</title>
-<meta name="description" content="Exact similarity and substructure search in Rust. One thread scores 1.45 billion fingerprints per second. Every answer matches a brute-force scan.">
+<meta name="description" content="Exact similarity and SMARTS substructure search over molecular fingerprints, in Rust. 1.45 billion fingerprints per second per thread. Every result matches a brute-force scan.">
 <link rel="canonical" href="https://mossflux.com/">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#000000">
@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="mossflux">
 <meta property="og:url" content="https://mossflux.com/">
 <meta property="og:title" content="mossflux · exact similarity search at billions of molecules per second">
-<meta property="og:description" content="One thread scores 1.45 billion fingerprints per second. Every answer matches a brute-force scan.">
+<meta property="og:description" content="1.45 billion fingerprints per second per thread. Every result matches a brute-force scan.">
 <meta property="og:image" content="https://mossflux.com/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -23,170 +23,102 @@
 <link rel="preconnect" href="https://api.mossflux.com" crossorigin>
 <link rel="preload" href="fonts/Erode-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"mossflux","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS","url":"https://mossflux.com/","description":"Exact molecular similarity and substructure search in Rust.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
-</script>
 </head>
 <body>
 
+<canvas id="flux" aria-hidden="true"></canvas>
+
 <header class="top">
-  <a class="logo" href="#top" aria-label="mossflux home"><span class="mark"></span>mossflux</a>
+  <a class="logo" href="#about"><span class="mark"></span>mossflux</a>
   <nav>
+    <a href="#bench">Benchmarks</a>
     <a href="#demo">Demo</a>
-    <a href="#numbers">Numbers</a>
-    <a href="#run">Run it</a>
-    <a class="pill" href="https://github.com/zhom/mossflux">GitHub</a>
+    <a href="#get">Download</a>
+    <a class="pill" href="https://github.com/loruorg/mossflux">GitHub</a>
   </nav>
 </header>
 
-<main id="top">
+<main>
 
-<!-- 1. Hero: a point of light becomes a network. -->
-<section class="scene" data-seq="ignite" data-frames="120" style="--len: 230vh">
-  <div class="stage">
-    <canvas class="seq" aria-hidden="true"></canvas>
-    <div class="beat" data-in="0" data-out="0.34">
-      <h1>Exact similarity search at billions of molecules per&nbsp;second.</h1>
-      <p class="lede">Plus SMARTS substructure search. Written from scratch in Rust. Every answer matches a brute-force scan.</p>
-      <div class="cta"><a class="btn hi" href="#demo">Try the demo</a><a class="btn" href="https://github.com/zhom/mossflux">GitHub</a></div>
-    </div>
-    <div class="beat center" data-in="0.42" data-out="0.7">
-      <p class="huge"><span class="n">1.45</span> billion</p>
-      <p class="cap">fingerprints scored per second, on one thread.</p>
-    </div>
-    <div class="beat center" data-in="0.76" data-out="1.01">
-      <p class="huge"><span class="n">21.4</span> billion</p>
-      <p class="cap">per second on eight cores.</p>
-    </div>
-    <p class="note">256-bit fingerprints, threshold 0.85, AMD EPYC 9645. One thread: AVX2 build, 50M rows. Eight cores: ChEMBL. <a href="https://github.com/zhom/mossflux/blob/main/docs/benchmarks.md">Conditions</a></p>
-    <span class="scroll-hint" aria-hidden="true">scroll</span>
+<section class="sec" id="about">
+  <div class="in">
+    <h1>Exact similarity search at billions of molecules per&nbsp;second.</h1>
+    <p class="lede">mossflux searches molecular fingerprints by Tanimoto similarity and SMARTS substructure. It is written from scratch in Rust, and every result matches a brute-force scan.</p>
+    <div class="cta"><a class="btn hi" href="#demo">Try the demo</a><a class="btn" href="#get">Download</a></div>
+    <dl class="stats">
+      <div><dt>per thread</dt><dd>1.45 B/s</dd></div>
+      <div><dt>on 8 cores</dt><dd>21.4 B/s</dd></div>
+      <div><dt>missed hits</dt><dd>0</dd></div>
+    </dl>
   </div>
 </section>
 
-<!-- 2. A live counter at the real per-thread rate. -->
-<section class="scene" data-seq="warp" data-frames="120" style="--len: 170vh">
-  <div class="stage">
-    <canvas class="seq" aria-hidden="true"></canvas>
-    <div class="beat center" data-in="0.08" data-out="1.01">
-      <p class="cap">Since you opened this page, one mossflux thread could have scored</p>
-      <p class="ticker" id="ticker" aria-live="off">0</p>
-      <p class="cap">fingerprints.</p>
+<section class="sec" id="bench">
+  <div class="in">
+    <h2>The fastest exact search we have measured.</h2>
+    <div class="charts">
+      <figure class="chart" data-chart="chembl">
+        <figcaption><b>Similarity, one thread each</b><span>Million molecules per second. ChEMBL 37, 2048-bit, Tanimoto ≥ 0.7, Apple M4 Max.</span></figcaption>
+        <div class="bars"></div>
+      </figure>
+      <figure class="chart" data-chart="arthor">
+        <figcaption><b>Against Arthor, per thread</b><span>Billion molecules per second, 256-bit. mossflux: AMD EPYC, AVX2 build, t = 0.85. Arthor: its published range.</span></figcaption>
+        <div class="bars"></div>
+      </figure>
     </div>
+    <p class="fine">FPSim2 at 256 bits on EPYC: mossflux is 2.6 to 2.8 times faster. RDKit times are extrapolated from 1M and 100K subsets. All conditions: <a href="https://github.com/loruorg/mossflux/blob/main/docs/benchmarks.md">benchmarks</a>.</p>
   </div>
 </section>
 
-<!-- 3. How: WebGL particles, scrubbed by scroll. -->
-<section class="scene" id="how" data-gl="1" style="--len: 380vh">
-  <div class="stage">
-    <canvas class="gl" id="gl" aria-hidden="true"></canvas>
-    <div class="steps">
-      <div class="beat side" data-in="0" data-out="0.22">
-        <span class="k">01</span>
-        <h2>A library is millions of fingerprints. Or billions.</h2>
-        <p>Each molecule becomes a string of bits. Here are 2.9 million real ones from ChEMBL, sampled.</p>
+<section class="sec" id="demo">
+  <div class="in">
+    <h2>Try it.</h2>
+    <p class="desc">This demo searches ChEMBL 37 (2.9 million molecules) on one small 4-thread server.</p>
+    <form class="bar" id="q-form" autocomplete="off">
+      <div class="modes" role="radiogroup" aria-label="Search type">
+        <button type="button" role="radio" aria-checked="true" data-mode="sim">Similar to</button>
+        <button type="button" role="radio" aria-checked="false" data-mode="sub">Contains</button>
       </div>
-      <div class="beat side" data-in="0.26" data-out="0.48">
-        <span class="k">02</span>
-        <h2>mossflux sorts them by how many bits are set.</h2>
-        <p>One pass, once. The order is the index.</p>
+      <label class="vh" for="q">SMILES or SMARTS</label>
+      <input id="q" spellcheck="false" autocapitalize="off" autocomplete="off" value="CC(=O)Oc1ccccc1C(=O)O">
+      <button class="go" type="submit">Search</button>
+    </form>
+    <div class="chips" id="chips"></div>
+    <div class="res" aria-live="polite">
+      <div class="r-line">
+        <span class="r-big"><b id="r-hits">–</b><i id="r-hits-k">hits</i></span>
+        <span class="r-big"><b id="r-ms">–</b><i>ms</i></span>
+        <span class="r-of" id="r-of"></span>
       </div>
-      <div class="beat side" data-in="0.52" data-out="0.74">
-        <span class="k">03</span>
-        <h2>A proven bound rules out most of the library.</h2>
-        <p>For this query, <b>88.8%</b> is never read. The bound is a proof, not a guess.</p>
-      </div>
-      <div class="beat side" data-in="0.78" data-out="1.01">
-        <span class="k">04</span>
-        <h2>The rest is scored exactly.</h2>
-        <p>Every true hit is found. Nothing is approximated.</p>
-      </div>
+      <canvas id="strip" aria-hidden="true"></canvas>
+      <div class="r-leg"><span id="r-skip"></span><span id="r-rate"></span></div>
+      <div class="mols" id="mols"></div>
     </div>
-    <p class="gl-read" id="gl-read" aria-hidden="true"></p>
+    <p class="err" id="err" hidden></p>
   </div>
 </section>
 
-<!-- 4. The demo. -->
-<section class="demo" id="demo" aria-labelledby="demo-h">
-  <div class="demo-head">
-    <h2 id="demo-h">Try it</h2>
-    <p>Demo index: ChEMBL 37, 2.9 million molecules, on one small 4-thread container.</p>
-  </div>
-  <form class="bar" id="q-form" autocomplete="off">
-    <div class="modes" role="radiogroup" aria-label="Search type">
-      <button type="button" role="radio" aria-checked="true" data-mode="sim">Similar to</button>
-      <button type="button" role="radio" aria-checked="false" data-mode="sub">Contains</button>
+<section class="sec" id="get">
+  <div class="in">
+    <h2>Run it on your library.</h2>
+    <div class="cmds">
+      <p class="k">Docker, x86-64</p>
+<pre><code>docker run -p 8080:8080 -v "$PWD:/data:ro" loruorg/mossflux \
+  serve --db /data/library.smi</code></pre>
+      <p class="k">From source</p>
+<pre><code>cargo install --git https://github.com/loruorg/mossflux mossflux-cli</code></pre>
     </div>
-    <label class="vh" for="q">Query</label>
-    <input id="q" spellcheck="false" autocapitalize="off" autocomplete="off" value="CC(=O)Oc1ccccc1C(=O)O">
-    <button class="go" type="submit">Search</button>
-  </form>
-  <div class="chips" id="chips"></div>
-  <div class="result" id="result" aria-live="polite">
-    <div class="r-line">
-      <span class="r-big"><b id="r-hits">–</b> <i id="r-hits-k">hits</i></span>
-      <span class="r-big"><b id="r-ms">–</b> <i>ms</i></span>
-      <span class="r-small" id="r-of">across 2,896,304 molecules</span>
+    <p class="desc">One binary. REST, gRPC and MCP. Any SMILES file, gzip included.</p>
+    <div class="cta">
+      <a class="btn hi" href="https://github.com/loruorg/mossflux/tree/main/docs">Documentation</a>
+      <a class="btn" href="https://github.com/loruorg/mossflux/blob/main/docs/deploy.md">Docker and Kubernetes</a>
+      <a class="btn" href="https://github.com/loruorg/mossflux/blob/main/docs/api.md">API</a>
     </div>
-    <div class="r-strip" aria-hidden="true"><canvas id="strip"></canvas></div>
-    <div class="r-legend"><span id="r-skip">–</span><span id="r-rate"></span></div>
-    <div class="r-mols" id="r-mols"></div>
-  </div>
-  <p class="err" id="err" hidden></p>
-</section>
-
-<!-- 5. Exactness. -->
-<section class="scene" data-seq="lattice" data-frames="120" style="--len: 190vh">
-  <div class="stage">
-    <canvas class="seq dimmer" aria-hidden="true"></canvas>
-    <div class="beat center" data-in="0.1" data-out="1.01">
-      <h2 class="mid">No approximations.</h2>
-      <p class="cap wide">Approximate search trades hits for speed. mossflux does not. Each fast path is tested against a slow brute-force twin, and each pruning rule is a proof.</p>
-      <div class="facts">
-        <div><b>0</b><span>false negatives</span></div>
-        <div><b>313</b><span>tests</span></div>
-        <div><b>0</b><span>lines of unsafe</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 6. Numbers. -->
-<section class="scene" id="numbers" data-seq="scan" data-frames="120" style="--len: 200vh">
-  <div class="stage">
-    <canvas class="seq dim" aria-hidden="true"></canvas>
-    <div class="beat center race-beat" data-in="0.06" data-out="1.01">
-      <h2 class="mid">One query. Same machine, one thread each.</h2>
-      <div class="race" id="race"></div>
-      <p class="note-in">Similarity, 2048-bit Morgan, threshold 0.7, ChEMBL 37, Apple M4 Max. Real time. RDKit times extrapolated from 1M and 100K subsets.</p>
-      <div class="facts small">
-        <div><b>2.7×</b><span>faster than FPSim2, 256-bit, EPYC</span></div>
-        <div><b>1.45</b><span>B/s per thread. Arthor publishes 0.9 to 1.2</span></div>
-        <div><b>5.2–160</b><span>M/s per thread, 17 SMARTS queries</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 7. Run it. -->
-<section class="scene" id="run" data-seq="bloom" data-frames="120" style="--len: 170vh">
-  <div class="stage">
-    <canvas class="seq" aria-hidden="true"></canvas>
-    <div class="beat center" data-in="0.12" data-out="1.01">
-      <h2 class="mid">Run it on your library.</h2>
-      <pre class="cmd"><code>docker run -p 8080:8080 -v "$PWD/data:/data:ro" \
-  ghcr.io/zhom/mossflux serve --db /data/library.smi</code></pre>
-      <p class="cap">REST, gRPC and MCP. One binary, no chemistry library.</p>
-      <div class="cta center"><a class="btn hi" href="https://github.com/zhom/mossflux">GitHub</a><a class="btn" href="https://github.com/zhom/mossflux/blob/main/docs/deploy.md">Deploy</a><a class="btn" href="https://github.com/zhom/mossflux/blob/main/docs/api.md">API</a></div>
-    </div>
+    <p class="fine foot">MIT or Apache-2.0 · Demo data: ChEMBL 37, CC BY-SA 3.0</p>
   </div>
 </section>
 
 </main>
-
-<footer class="foot">
-  <span>mossflux · MIT or Apache-2.0</span>
-  <span>Demo data: ChEMBL 37, CC BY-SA 3.0</span>
-</footer>
 
 <script src="app.js" defer></script>
 </body>

@@ -1,6 +1,6 @@
 # Deploy
 
-The image is `ghcr.io/zhom/mossflux:latest`. It holds only the `mossflux`
+The image is `loruorg/mossflux:latest` on Docker Hub (x86-64). It holds only the `mossflux`
 binary (distroless, non-root, user 65532). Give it a SMILES file; it builds the
 index in memory at start and serves REST and MCP on 8080 and gRPC on 50051.
 
@@ -19,7 +19,7 @@ mkdir -p data && curl -fL -o data/chembl_37_chemreps.txt.gz \
 
 ```sh
 docker run -d --name mossflux -p 8080:8080 -p 50051:50051 \
-  -v "$PWD/data:/data:ro" ghcr.io/zhom/mossflux:latest \
+  -v "$PWD/data:/data:ro" loruorg/mossflux:latest \
   serve --db chembl=/data/chembl_37_chemreps.txt.gz
 
 curl localhost:8080/ready      # 503 while loading, then 200
