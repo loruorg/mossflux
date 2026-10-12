@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>mossflux · exact molecular similarity and substructure search</title>
+<meta name="description" content="Exact Tanimoto similarity and SMARTS substructure search over molecular fingerprints, from scratch in Rust. Every fast path is checked by brute force.">
+<link rel="canonical" href="https://mossflux.com/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E120F">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="mossflux">
+<meta property="og:url" content="https://mossflux.com/">
+<meta property="og:title" content="mossflux · every fast path has a slow twin that checks it">
+<meta property="og:description" content="Exact Tanimoto and exact SMARTS search over molecular fingerprints, from scratch in Rust. Zero unsafe code, three third-party crates.">
+<meta property="og:image" content="https://mossflux.com/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="mossflux: every fast path has a slow twin that checks it. Moss and brass light on a dark ground.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="mossflux · every fast path has a slow twin that checks it">
+<meta name="twitter:description" content="Exact Tanimoto and exact SMARTS search over molecular fingerprints, from scratch in Rust.">
+<meta name="twitter:image" content="https://mossflux.com/og.jpg">
+<meta name="twitter:image:alt" content="mossflux: every fast path has a slow twin that checks it.">
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/Erode-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Erode-VariableItalic.woff2" as="font" type="font/woff2" crossorigin>
+
+<!-- Pick this visit's background before first paint, so its first frame starts
+     downloading with the HTML. A shuffled deck in localStorage means every
+     theme shows once before any repeats, and a refresh never repeats the last
+     one. The list between the markers is written by scripts/site/build_frames.py. -->
+<script>
+(function (d) {
+  var T = /*@themes*/["moss","molecules","bitfield","ink","aerial","vials","forest"]/*@end*/;
+  var K = "mossflux-bg", q = [], last = null, p, o, l;
+  try { q = JSON.parse(localStorage.getItem(K)) || []; last = localStorage.getItem(K + "-last"); } catch (e) {}
+  q = q.filter(function (x) { return T.indexOf(x) >= 0; });
+  if (!q.length) {
+    q = T.slice();
+    for (var i = q.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, t = q[i]; q[i] = q[j]; q[j] = t; }
+    if (q.length > 1 && q[0] === last) { q.push(q.shift()); }
+  }
+  p = q.shift();
+  try { localStorage.setItem(K, JSON.stringify(q)); localStorage.setItem(K + "-last", p); } catch (e) {}
+  o = innerWidth < innerHeight ? "p" : "l";
+  d.setAttribute("data-bg", p);
+  d.setAttribute("data-bgo", o);
+  d.className += " js";
+  l = document.createElement("link");
+  l.rel = "preload"; l.as = "image"; l.href = "bg/" + p + "/" + o + "/000.webp";
+  document.head.appendChild(l);
+})(document.documentElement);
+</script>
+<link rel="preconnect" href="https://api.mossflux.com" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<noscript><style>html { background: #0E120F url(bg/moss/l/036.webp) center / cover fixed; } .reveal { opacity: 1; transform: none; }</style></noscript>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "mossflux",
+  "version": "0.1.0",
+  "description": "Exact Tanimoto similarity search and exact SMARTS substructure search over molecular fingerprints, written from scratch in Rust with no chemistry library.",
+  "url": "https://mossflux.com/",
+  "image": "https://mossflux.com/og.jpg",
+  "codeRepository": "https://github.com/zhom/mossflux",
+  "programmingLanguage": { "@type": "ComputerLanguage", "name": "Rust" },
+  "runtimePlatform": "Rust 1.95",
+  "license": ["https://opensource.org/licenses/MIT", "https://www.apache.org/licenses/LICENSE-2.0"],
+  "keywords": "cheminformatics, molecular similarity search, Tanimoto, BitBound, substructure search, SMARTS, SMILES, molecular fingerprints, ChEMBL, Rust"
+}
+</script>
+</head>
+<body>
+
+<!-- The background: one fixed canvas that draws the frames of this visit's
+     video, scrubbed by the scroll position. bg.js owns it. -->
+<canvas class="bg" id="bg" aria-hidden="true"></canvas>
+
+<a class="skip" href="#band">Skip to the live plot</a>
+
+<header class="rail">
+  <div class="wrap rail-in">
+    <a class="rail-brand" href="#top" aria-label="mossflux 0.1.0, back to top">
+      <!-- the band and its query: two bounds, one tick between them -->
+      <svg class="mark" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <rect x="0" y="4" width="20" height="2" fill="currentColor"></rect>
+        <rect x="0" y="14" width="20" height="2" fill="currentColor"></rect>
+        <rect x="9.5" y="7" width="1" height="6" fill="#D2BC93"></rect>
+      </svg>
+      <span class="rail-name">mossflux</span>
+      <span class="rail-ver">0.1.0</span>
+    </a>
+    <nav class="rail-nav" aria-label="Primary">
+      <a href="#demo">Demo</a>
+      <a href="https://github.com/zhom/mossflux/blob/main/docs/benchmarks.md" data-optional>Benchmarks</a>
+      <a href="https://github.com/zhom/mossflux/blob/main/docs/correctness.md" data-optional>Correctness</a>
+      <a href="https://github.com/zhom/mossflux">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO. Free-standing type: bone only, over a scrim whose opacity bg.js sets
+     per frame from the measured brightness of that frame. -->
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="free hero-type">
+      <div class="scrim" aria-hidden="true"></div>
+      <h1 class="h-hero">Every fast path has a <em>slow</em> twin that&nbsp;checks&nbsp;it.</h1>
+      <p class="lead">
+        Exact Tanimoto similarity and exact SMARTS substructure search over molecular
+        fingerprints, written from scratch in Rust. Zero unsafe code, three third-party crates.
+      </p>
+      <p class="hero-act">
+        <a class="control" href="https://github.com/zhom/mossflux">
+          <span class="control-name">Source</span>
+          <span class="control-url"><span class="control-host">github.com/</span>zhom/mossflux</span>
+          <svg class="ico" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+            <path d="M4.6 11.4 L11.4 4.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            <path d="M6.6 4.6 H11.4 V9.4" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"></path>
+          </svg>
+        </a>
+        <a class="ghost" href="#demo">Try it <span aria-hidden="true">↓</span></a>
+      </p>
+    </div>
+  </div>
+  <p class="bg-cap" aria-hidden="true">
+    <span id="bg-name">background</span>
+    <span class="bg-frame">frame <b id="bg-frame">000</b>/<span id="bg-count">072</span></span>
+  </p>
+</section>
+
+<!-- STATEMENT. The rule the whole repo is built around. -->
+<section class="stmt" aria-labelledby="s-exact">
+  <div class="wrap stmt-grid">
+    <div class="free stmt-a reveal">
+      <div class="scrim" aria-hidden="true"></div>
+      <h2 class="h-stmt" id="s-exact">Pruning may never drop a true&nbsp;hit.</h2>
+      <p class="stmt-sub">
+        Both engines return exactly what a brute-force scan returns. Speed is measured only
+        after that holds.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- THE BAND. Live, on real data, computed in the browser. -->
+<section class="sec" id="band" aria-labelledby="s-band">
+  <div class="wrap">
+    <div class="plate band reveal">
+      <div class="band-head">
+        <h2 class="h-sec" id="s-band">BitBound, live, on <span class="num">3,072</span> real ChEMBL fingerprints</h2>
+        <p class="note">
+          Each row is a molecule, sorted by popcount. Each column is one of 256 bits. The
+          threshold sets a popcount band, and only rows inside the brass rules are read. Every
+          number here is computed in your browser, with the engine's integer arithmetic.
+        </p>
+      </div>
+
+      <div class="band-grid">
+        <div class="band-plot">
+          <div class="scrub">
+            <label class="scrub-label" for="thr">threshold</label>
+            <input id="thr" type="range" min="0.3" max="0.95" step="0.005" value="0.7"
+                   aria-describedby="live">
+            <output class="scrub-val" for="thr" id="q-t-out">0.700</output>
+          </div>
+          <canvas class="tickrail" id="tickrail" aria-hidden="true"></canvas>
+          <div class="arena-shell">
+            <div class="arena-bed" aria-hidden="true"></div>
+            <canvas class="arena" id="arena" role="img"
+              aria-label="3,072 real ChEMBL-37 fingerprints, one row each, sorted from fewest set bits at the top to most at the bottom. Two brass rules mark the popcount band the threshold allows. Rows outside it are faint because they are never read; the rows that clear the threshold are drawn in brass."></canvas>
+          </div>
+        </div>
+
+        <aside class="qcard" aria-label="Current query">
+          <dl>
+            <dt>query</dt>       <dd id="q-id">CHEMBL1419316</dd>
+            <dt>popcount</dt>    <dd id="q-a">47</dd>
+            <dt>threshold</dt>   <dd id="q-t">0.700</dd>
+            <dt>band</dt>        <dd id="q-band">[ 33 , 67 ]</dd>
+            <dt>candidates</dt>  <dd id="q-cand">2,614 / 3,072</dd>
+            <dt>scanned</dt>     <dd id="q-scan">85.09 %</dd>
+            <dt>pruning</dt>     <dd id="q-prune">1.18 x</dd>
+            <dt>hits</dt>        <dd id="q-hits" class="hit">2</dd>
+          </dl>
+          <p class="note qnote">
+            It opens on the weak case: popcount <span class="num">47</span> sits near the
+            median, where BitBound still reads most rows. Drag the threshold up and the band
+            closes.
+          </p>
+        </aside>
+      </div>
+
+      <p class="note band-foot">
+        Folded <span class="num">2048</span> to <span class="num">256</span> bits, the width
+        Arthor's figures use. Popcounts in this sample:
+        <span class="num" id="moments">min 11, median 47, mean 48.11, max 137</span>.
+      </p>
+      <p class="vh" id="live" aria-live="polite">
+        Threshold 0.700. Band 33 to 67 set bits. 2,614 of 3,072 records scanned, 85.1 percent. 2 hits.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- THE TWO ENGINES. -->
+<section class="sec" aria-label="The two engines">
+  <div class="wrap two">
+
+    <article class="plate eng reveal" aria-labelledby="s-sim">
+      <h2 class="h-sec" id="s-sim">Similarity</h2>
+      <p class="body">
+        Fingerprints packed into 64-bit lanes: one AND, one popcount and one integer compare
+        per record. The arena is sorted by popcount, so the band is one contiguous slice and
+        the rest is never read.
+      </p>
+
+      <figure class="rate" aria-labelledby="rate-cap">
+        <p class="fig-title">Fingerprints compared per second, one thread, billions</p>
+        <div class="rate-rows">
+          <div class="rate-row" style="--v:1.45">
+            <span class="rate-k">mossflux, t = 0.85</span>
+            <span class="rate-bar"><i></i></span>
+            <span class="rate-v">1.45</span>
+          </div>
+          <div class="rate-row" style="--v:0.93">
+            <span class="rate-k">mossflux, t = 0.50</span>
+            <span class="rate-bar"><i></i></span>
+            <span class="rate-v">0.93</span>
+          </div>
+          <div class="rate-row rate-ref" style="--v:0.9; --w:1.2">
+            <span class="rate-k">Arthor, vendor figure</span>
+            <span class="rate-bar"><i></i><i class="rate-span"></i></span>
+            <span class="rate-v">0.9 to 1.2</span>
+          </div>
+        </div>
+        <div class="rate-axis" aria-hidden="true"><span>0</span><span>0.5</span><span>1.0</span><span>1.5</span></div>
+        <figcaption class="note" id="rate-cap">
+          Everything scored, exactness gated on every query. 50M synthetic 256-bit
+          fingerprints, built for znver3 to match Arthor's Zen3. Against FPSim2 on the same
+          EPYC, search only: <span class="num">2.64x</span> to <span class="num">2.77x</span>.
+        </figcaption>
+      </figure>
+
+      <p class="note eng-foot">
+        The band is weak where popcounts cluster. On ChEMBL-37 at 2048 bits it prunes
+        <span class="num">4.5x</span> at <span class="num">t = 0.90</span>, but only
+        <span class="num">1.6x</span> at <span class="num">t = 0.70</span>.
+      </p>
+    </article>
+
+    <article class="plate eng reveal" aria-labelledby="s-sub">
+      <h2 class="h-sec" id="s-sub">Substructure</h2>
+      <p class="body">
+        Own SMILES and SMARTS parsers, aromaticity perception, a path-fragment screen, a
+        per-molecule census and a VF2++ style matcher. No chemistry library underneath.
+      </p>
+
+      <figure class="funnel" aria-labelledby="funnel-cap">
+        <p class="fig-title">21 SMARTS probes over <span class="num">199,946</span> ChEMBL molecules</p>
+        <ol class="cells" aria-hidden="true">
+          <li style="--i:0"></li><li style="--i:1"></li><li style="--i:2"></li><li style="--i:3"></li>
+          <li style="--i:4"></li><li style="--i:5"></li><li style="--i:6"></li><li style="--i:7"></li>
+          <li style="--i:8"></li><li style="--i:9"></li><li style="--i:10"></li><li style="--i:11"></li>
+          <li style="--i:12"></li><li style="--i:13"></li>
+          <li class="vf" style="--i:14"></li><li class="vf" style="--i:15"></li><li class="vf" style="--i:16"></li>
+          <li class="vf" style="--i:17"></li><li class="vf" style="--i:18"></li><li class="vf" style="--i:19"></li>
+          <li class="vf" style="--i:20"></li>
+        </ol>
+        <div class="cells-key">
+          <span class="key-census"><b>14</b> answered by the census, zero candidates</span>
+          <span class="key-vf"><b>7</b> reach the matcher</span>
+        </div>
+        <figcaption class="note" id="funnel-cap">
+          The census decides a probe only when the answer is exact. The screen can admit extra
+          candidates, never drop a hit.
+        </figcaption>
+      </figure>
+
+      <div class="scroll-x">
+        <table class="dtable">
+          <tbody>
+            <tr><th scope="row">build, 16 threads, Apple M4 Max</th><td>199,946 in 1.471 s</td></tr>
+            <tr><th scope="row">index memory</th><td>1,264 bytes / molecule</td></tr>
+            <tr><th scope="row">SMILES outside the supported subset</th><td>54 of 200,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- HOW A QUERY RUNS. Two isometric figures (figs.js, drawn with iso.js).
+     Every number in them is already in the HTML at its true value. -->
+<section class="sec" id="how" aria-labelledby="s-how">
+  <div class="wrap">
+    <div class="plate how reveal">
+      <div class="how-head">
+        <h2 class="h-sec" id="s-how">How a query runs</h2>
+        <p class="note">
+          Two machines, one per engine. The drawer runs on the real popcount counts of all
+          <span class="num">2,897,819</span> ChEMBL 37 fingerprints. The line replays the counts of
+          your last substructure search in the demo below.
+        </p>
+      </div>
+
+      <figure class="iso-fig" aria-labelledby="fa-cap">
+        <div class="iso-card">
+          <span class="iso-c" data-c="fig">Fig 1</span>
+          <span class="iso-c" data-c="title">BitBound, as a card drawer</span>
+          <div class="iso-stage iso-stage-a" id="fa-stage"></div>
+          <span class="iso-c" data-c="hint">Drag across the drawer</span>
+          <span class="iso-c" data-c="read" id="fa-read">band 36–72 · skips 18.4 %</span>
+        </div>
+        <div class="iso-ctl">
+          <div class="scrub">
+            <label class="scrub-label" for="fa-q">query popcount</label>
+            <input id="fa-q" type="range" min="1" max="160" step="1" value="51" aria-describedby="fa-rows">
+            <output class="scrub-val" for="fa-q" id="fa-q-out">51</output>
+          </div>
+          <div class="scrub">
+            <label class="scrub-label" for="fa-t">threshold</label>
+            <input id="fa-t" type="range" min="0.3" max="1" step="0.01" value="0.70" aria-describedby="fa-rows">
+            <output class="scrub-val" for="fa-t" id="fa-t-out">0.70</output>
+          </div>
+        </div>
+        <p class="iso-rows" id="fa-rows">2,363,790 of 2,897,819 rows read</p>
+        <div class="iso-keys" aria-hidden="true">
+          <span class="key key-lit">read: popcount in [⌈t·q⌉, ⌊q/t⌋]</span>
+          <span class="key key-dim">skipped, never touched</span>
+        </div>
+        <figcaption class="note" id="fa-cap">
+          One card per popcount, as tall as the number of molecules with that many set bits
+          (2048-bit Morgan, radius 2); the last card holds popcounts 161 to 249. A molecule outside the dividers cannot reach the threshold,
+          so the scan never reads it. Near the median the band is wide; at high thresholds or rare
+          popcounts it closes.
+        </figcaption>
+        <p class="vh" id="fa-live" aria-live="polite"></p>
+      </figure>
+
+      <figure class="iso-fig" aria-labelledby="fb-cap">
+        <div class="iso-card">
+          <span class="iso-c" data-c="fig">Fig 2</span>
+          <span class="iso-c" data-c="title">The substructure line</span>
+          <div class="iso-stage iso-stage-b" id="fb-stage"></div>
+          <span class="iso-c" data-c="hint" id="fb-hint">Run a substructure search below</span>
+          <span class="iso-c" data-c="read" id="fb-read">waiting for a query</span>
+        </div>
+        <p class="iso-rows" id="fb-counts">Read → reached the matcher → matched.</p>
+        <div class="iso-keys" aria-hidden="true">
+          <span class="key key-mid">screen: path fingerprint, a superset</span>
+          <span class="key key-mid">census: element and bond counts</span>
+          <span class="key key-lit">matcher: VF2, the exact answer</span>
+        </div>
+        <figcaption class="note" id="fb-cap">
+          The screen and the census may let extra molecules through, never drop a hit; the matcher
+          decides. Tokens are symbolic, on a log scale. The counts are the API's own.
+        </figcaption>
+        <p class="vh" id="fb-live" aria-live="polite"></p>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- THE DEMO. Calls the mossflux REST API (demo.js). -->
+<section class="sec" id="demo" aria-labelledby="s-demo" data-mode="sim">
+  <div class="wrap">
+    <div class="plate demo reveal">
+      <div class="demo-head">
+        <h2 class="h-sec" id="s-demo">Search ChEMBL&nbsp;37</h2>
+        <p class="demo-db" id="demo-db" data-state="wait">connecting …</p>
+      </div>
+
+      <div class="demo-grid">
+        <div class="demo-main">
+          <div class="tabs" role="tablist" aria-label="Search type">
+            <button class="tab" id="tab-sim" role="tab" type="button" data-mode="sim" aria-selected="true" aria-controls="demo-panel">Similarity</button>
+            <button class="tab" id="tab-sub" role="tab" type="button" data-mode="sub" aria-selected="false" aria-controls="demo-panel" tabindex="-1">Substructure</button>
+          </div>
+
+          <div id="demo-panel" role="tabpanel" aria-labelledby="tab-sim">
+            <form class="qform" id="demo-form" autocomplete="off">
+              <label class="qlabel" for="demo-q" id="demo-label">SMILES</label>
+              <div class="qrow">
+                <input class="qinput" id="demo-q" name="q" type="text" spellcheck="false" autocapitalize="off"
+                       autocorrect="off" enterkeyhint="search" aria-describedby="demo-err">
+                <button class="qgo" id="demo-go" type="submit">Search</button>
+              </div>
+              <div class="chips" id="demo-chips" aria-label="Examples"></div>
+
+              <div class="qctl" id="demo-simctl">
+                <fieldset class="seg">
+                  <legend class="vh">Mode</legend>
+                  <label><input type="radio" name="mode" id="demo-mode-t" value="t" checked> <span>threshold</span></label>
+                  <label><input type="radio" name="mode" id="demo-mode-k" value="k"> <span>top 20</span></label>
+                </fieldset>
+                <div class="scrub">
+                  <label class="scrub-label" for="demo-t">Tanimoto ≥</label>
+                  <input id="demo-t" type="range" min="0.3" max="1" step="0.01" value="0.70">
+                  <output class="scrub-val" for="demo-t" id="demo-t-out">0.70</output>
+                </div>
+              </div>
+              <p class="qctl note" id="demo-subctl" hidden>
+                Exact SMARTS, recursive <span class="num">$()</span> included. First 50 hits, 5 s deadline.
+              </p>
+              <div class="qerr" id="demo-err" role="alert" hidden></div>
+            </form>
+          </div>
+        </div>
+
+        <figure class="demo-molbox">
+          <canvas class="demo-mol" id="demo-mol" tabindex="0" role="img" aria-label="The query molecule as a turning 3D sketch. Drag or use the arrow keys to turn it."></canvas>
+          <figcaption class="note" id="demo-mol-note">The query, as a 3D sketch from its graph.</figcaption>
+        </figure>
+      </div>
+
+      <dl class="perf" id="demo-perf">
+        <div><dt>molecules searched</dt><dd id="p-total">–</dd></div>
+        <div><dt>server time</dt><dd id="p-time">–</dd></div>
+        <div><dt>molecules / second</dt><dd id="p-rate">–</dd></div>
+        <div><dt id="p-prune-k">skipped by the bound</dt><dd id="p-prune">–</dd></div>
+      </dl>
+      <p class="demo-status vh" id="demo-status" aria-live="polite"></p>
+
+      <div class="demo-off" id="demo-off" hidden>
+        <p><b>The demo API did not answer.</b> <span class="num" id="demo-off-url">https://api.mossflux.com</span> may be down or
+          not yet deployed. Try again, or <a href="#run">run it yourself</a>.</p>
+        <button class="qgo qgo-ghost" id="demo-retry" type="button">Try again</button>
+      </div>
+
+      <p class="demo-count" id="demo-count"></p>
+      <ul class="hits" id="demo-hits"></ul>
+
+      <p class="note demo-attr">
+        Data: <a href="https://www.ebi.ac.uk/chembl/">ChEMBL 37</a>,
+        <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>.
+        Depictions drawn in your browser with smiles-drawer (MIT).
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- STATEMENT. The correction. -->
+<section class="stmt" aria-labelledby="s-arthor">
+  <div class="wrap stmt-grid">
+    <div class="free stmt-b reveal">
+      <div class="scrim" aria-hidden="true"></div>
+      <h2 class="h-stmt" id="s-arthor">Arthor's 30 to 50 billion per second is an aggregate over 96&nbsp;threads.</h2>
+      <p class="stmt-sub">
+        The same deck gives 0.9 to 1.2 billion per thread, and that is the only number
+        compared here. Matching a per-thread rate is not beating a 96-thread aggregate.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- THE TRANSPOSE. Same records, read the other way round. Also live. -->
+<section class="sec" aria-labelledby="s-tp">
+  <div class="wrap">
+    <div class="plate tp reveal">
+      <div class="tp-text">
+        <h2 class="h-sec" id="s-tp">Read the molecules of each bit, not the bits of each molecule.</h2>
+        <p class="body">
+          Transposed, a query touches only its own set columns. Counts stay bit-sliced across a
+          few plane bitmaps and ripple with XOR and AND, so nothing scatters into a counter
+          array.
+        </p>
+        <p class="note">
+          About <span class="num">6x</span> over the linear scan at 2048 bits, hits
+          byte-identical on every query. The first version did scatter, and lost by
+          <span class="num">2.6x</span> at <span class="num">t = 0.70</span>. Both results are
+          in the repo.
+        </p>
+      </div>
+      <figure class="tp-view">
+        <div class="scroll-x">
+          <canvas class="tp-canvas" id="transpose" role="img"
+            aria-label="The same 3,072 records as 48 words of 64. Each column is one set bit of the query, rarest first. Whole words go dark once every record in them is provably finished. The bars underneath are the bit-sliced accumulator planes of one word."></canvas>
+        </div>
+        <div class="tp-readout">
+          <span>columns read <b id="tp-cols">80 / 80</b></span>
+          <span>records alive <b id="tp-alive">9 / 3,072</b></span>
+          <span>words alive <b id="tp-words">3 / 48</b></span>
+          <span class="tp-meta-line" id="tp-meta">CHEMBL3894850, 80 set bits, 7 planes, t = 0.600</span>
+        </div>
+        <figcaption class="note">
+          One cell is one 64-record word, lit by how many of its records carry that bit. A word
+          goes dark on the frame its last record is provably finished. The bars are one word's
+          accumulator planes, brass when a carry ripples through.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- THE LIMITS. The page turns over: same hue, inverted value. -->
+<section class="sec" aria-labelledby="s-limits">
+  <div class="wrap">
+    <div class="sheet reveal">
+      <h2 class="sheet-head" id="s-limits">Nothing here is persistent, and one defect is open.</h2>
+      <div class="sheet-cols">
+        <div>
+          <h3>Not built</h3>
+          <p>
+            In memory only: no on-disk index, no write-ahead log, no compaction. No GPU, and no
+            approximate search, by contract. The largest real corpus measured is
+            <span class="num">2.9M</span> ChEMBL-37 molecules, not a billion.
+          </p>
+          <p>
+            Exact means exact on the stored bits. A score of <span class="num">1.0</span> means
+            two identical bit vectors, not the same compound.
+          </p>
+        </div>
+        <div>
+          <h3>Open defect</h3>
+          <p>
+            The fingerprint generator records no provenance: no salt stripping, no
+            <span class="num">useChirality</span>, no Morgan parameters in the header.
+          </p>
+          <p>
+            Tracked in <b>docs/correctness.md</b>. The hardening pass of 2026-10-03 fixed the other
+            four, each with a regression test kept in the tree.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE GATE. -->
+<section class="sec gate" aria-labelledby="s-gate">
+  <div class="wrap">
+    <div class="plate reveal">
+      <div class="gate-grid">
+        <h2 class="h-sec gate-head" id="s-gate">The binary will not print a timing it has not checked.</h2>
+        <p class="body gate-body">
+          <span class="num">bench</span> matches the BitBound path against an independent f64
+          loop on every sampled query. <span class="num">substruct-bench</span> checks the
+          split pipeline against a brute-force oracle before it times anything.
+        </p>
+      </div>
+
+      <div class="term">
+        <span class="term-tag">one run, verbatim. Apple M4 Max, 16 threads, release build</span>
+        <div class="scroll-x"><pre class="tx"><span class="dim">$</span> mossflux substruct-bench --smiles chembl_200k.smi --limit 200000 --repeat 3
+exact gate: split pipeline == brute-force oracle on 21 probes over 26 molecules (73 hits) ✓
+reading SMILES from "chembl_200k.smi" (limit 200000) ...
+corpus: 200,000 SMILES from file "chembl_200k.smi"
+  skipped 54 / 200,000 unparseable (0.03% — outside the supported SMILES subset)
+
+=== build ===
+  molecules        : 199,946
+  build time       : 1.471 s  (135,907 molecules/s)
+  index memory     : 241.2 MiB  (1,264 bytes/molecule)
+  screen memory    : 48.8 MiB  (of total)
+  threads          : 16</pre></div>
+        <p class="note">
+          The machine was not idle, so the timings move between runs. The counts reproduce exactly.
+        </p>
+      </div>
+
+      <div class="build">
+        <div class="scroll-x"><pre class="tx" id="build-cmd">git clone https://github.com/zhom/mossflux
+cargo build --release --all</pre></div>
+        <button class="copy" id="copy" type="button">
+          <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="2" aria-hidden="true" focusable="false">
+            <path d="M10 4.6 V2.6 H3 V11 H5.4" stroke-linecap="butt"></path>
+            <path d="M6.4 5.6 H11.4 L13.4 7.6 V13.4 H6.4 Z" stroke-linejoin="miter"></path>
+          </svg>
+          <span class="copy-label" id="copy-label">Copy</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RUN IT YOURSELF. -->
+<section class="sec" id="run" aria-labelledby="s-run">
+  <div class="wrap">
+    <div class="plate reveal">
+      <div class="gate-grid">
+        <h2 class="h-sec gate-head" id="s-run">Run it yourself</h2>
+        <p class="body gate-body">
+          One container serves the same API as the demo, on port <span class="num">8080</span>. Put the
+          ChEMBL chemreps file in <span class="num">./data</span> first.
+        </p>
+      </div>
+      <div class="build">
+        <div class="scroll-x"><pre class="tx" id="run-cmd">docker run -p 8080:8080 -v $PWD/data:/data ghcr.io/zhom/mossflux:latest serve --smiles /data/chembl_37_chemreps.txt.gz</pre></div>
+        <button class="copy" id="copy-run" type="button" data-copy="run-cmd">
+          <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="2" aria-hidden="true" focusable="false">
+            <path d="M10 4.6 V2.6 H3 V11 H5.4" stroke-linecap="butt"></path>
+            <path d="M6.4 5.6 H11.4 L13.4 7.6 V13.4 H6.4 Z" stroke-linejoin="miter"></path>
+          </svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+      <p class="run-links">
+        <a class="ghost" href="https://github.com/zhom/mossflux/blob/main/docs/deploy.md">Deploy guide</a>
+        <a class="ghost" href="https://github.com/zhom/mossflux/blob/main/docs/api.md">API reference</a>
+        <span class="note">Then open this page with <span class="num">?api=http://localhost:8080</span>.</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- THE FLOOR. The wordmark is a window: its letters show the last frames of
+     the background through a multiply blend, so nothing above the footer may
+     create a stacking context around it. -->
+<footer class="foot">
+  <div class="foot-top">
+    <div class="wrap foot-grid">
+      <p class="colophon">
+        <b>mossflux 0.1.0</b>. MIT OR Apache-2.0. Rust 1.95, edition 2021.<br>
+        Greenfield: no users, no deployments, no customers.
+      </p>
+      <nav class="foot-links" aria-label="Repository">
+        <a href="https://github.com/zhom/mossflux">Source</a>
+        <a href="https://github.com/zhom/mossflux/blob/main/docs/benchmarks.md">Benchmarks</a>
+        <a href="https://github.com/zhom/mossflux/blob/main/docs/correctness.md">Correctness</a>
+      </nav>
+      <p class="foot-type">
+        Backgrounds generated with Seedance 2.5, a different one on each visit. Type set in
+        Erode and Tabular, self-hosted under the ITF Free Font Licence.
+      </p>
+    </div>
+  </div>
+  <div class="wordmark-box">
+    <div class="wrap"><span class="wordmark" aria-hidden="true">mossflux</span></div>
+  </div>
+</footer>
+
+<script defer src="bg/manifest.js"></script>
+<script defer src="bg.js" data-instruments="data/arena.js band.js"></script>
+<script defer src="iso.js"></script>
+<script defer src="figs.js"></script>
+<script defer src="demo.js"></script>
+</body>
+</html>

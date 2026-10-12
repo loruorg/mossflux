@@ -1,0 +1,12 @@
+target
+data
+site
+scripts/site
+docs
+.git
+.github
+.venv*
+**/*.fps
+**/*.h5
+HANDOFF.md
+.DS_Store

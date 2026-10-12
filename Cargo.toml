@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = ["crates/mossflux-core", "crates/mossflux-index", "crates/mossflux-cli", "crates/mossflux-substruct", "crates/mossflux-server"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/zhom/mossflux"
+homepage = "https://github.com/zhom/mossflux"
+readme = "README.md"
+
+# `cargo publish` needs a version on path dependencies. Keep it equal to each crate's version.
+[workspace.dependencies]
+mossflux-core = { path = "crates/mossflux-core", version = "0.1.0" }
+mossflux-index = { path = "crates/mossflux-index", version = "0.1.0" }
+mossflux-substruct = { path = "crates/mossflux-substruct", version = "0.1.0" }
+mossflux-server = { path = "crates/mossflux-server", version = "0.1.0" }
+clap = { version = "4", features = ["derive", "env"] }
+rayon = "1"
+flate2 = "1"
+
+# Fat LTO and one codegen unit let the popcount and Tanimoto loops inline and vectorize.
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+# Overflow panics instead of wrapping; the hot loops are memory-bound, so the cost is negligible.
+overflow-checks = true
+
+[profile.bench]
+inherits = "release"

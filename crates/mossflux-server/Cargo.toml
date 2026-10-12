@@ -1,0 +1,39 @@
+[package]
+name = "mossflux-server"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+description = "REST, gRPC and MCP server for mossflux exact molecular search"
+keywords = ["cheminformatics", "substructure", "similarity", "grpc", "mcp"]
+categories = ["science", "web-programming::http-server"]
+
+[dependencies]
+mossflux-core.workspace = true
+mossflux-index.workspace = true
+mossflux-substruct.workspace = true
+rayon.workspace = true
+flate2.workspace = true
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "io-std", "io-util", "time"] }
+axum = "0.8.9"
+tower-http = { version = "0.7.1", features = ["cors", "trace", "limit", "timeout"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tonic = "0.14.6"
+prost = "0.14.4"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tonic-prost = "0.14.6"
+
+[build-dependencies]
+protox = "0.10.0"
+tonic-prost-build = "0.14.6"
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "net"] }
+tokio-stream = { version = "0.1.19", features = ["net"] }
+tower = { version = "0.5.3", features = ["util"] }

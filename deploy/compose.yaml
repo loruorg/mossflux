@@ -1,0 +1,30 @@
+# ChEMBL 37 (2.9M molecules) behind REST/MCP on :8080 and gRPC on :50051.
+# The `data` job downloads the SMILES file once (279 MB) into the volume.
+services:
+  data:
+    image: curlimages/curl:8.11.1
+    user: "0"
+    volumes: [data:/data]
+    entrypoint: ["sh", "-c"]
+    command:
+      - test -s /data/chembl_37_chemreps.txt.gz || (curl -fL --retry 3 -o /data/c.part $$URL && mv /data/c.part /data/chembl_37_chemreps.txt.gz)
+    environment:
+      URL: https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_37/chembl_37_chemreps.txt.gz
+
+  mossflux:
+    image: ghcr.io/zhom/mossflux:latest
+    depends_on:
+      data: {condition: service_completed_successfully}
+    command: ["serve"]
+    environment:
+      MOSSFLUX_DB: chembl=/data/chembl_37_chemreps.txt.gz
+      MOSSFLUX_THREADS: "4"
+      MOSSFLUX_MAX_CONCURRENT: "4"
+      RUST_LOG: info
+    ports: ["8080:8080", "50051:50051"]
+    volumes: [data:/data:ro]
+    restart: unless-stopped
+    mem_limit: 8g
+
+volumes:
+  data:

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package mossflux.v1;
+
+// Exact molecular search. Every answer equals a brute-force scan.
+service Search {
+  rpc ListDatabases(ListDatabasesRequest) returns (ListDatabasesResponse);
+  rpc Similarity(SimilarityRequest) returns (SimilarityResponse);
+  rpc Substructure(SubstructureRequest) returns (SubstructureResponse);
+  rpc Molecule(MoleculeRequest) returns (MoleculeResponse);
+}
+
+message ListDatabasesRequest {}
+
+message Database {
+  string name = 1;
+  uint64 molecules = 2;
+  string fingerprint_kind = 3;
+  uint32 fingerprint_bits = 4;
+  uint64 skipped = 5;
+  uint64 build_ms = 6;
+}
+
+message ListDatabasesResponse { repeated Database databases = 1; }
+
+message SimilarityRequest {
+  string db = 1;
+  string smiles = 2;
+  // Return every molecule with Tanimoto >= threshold. Ignored when k > 0.
+  double threshold = 3;
+  // Return the k nearest molecules.
+  uint32 k = 4;
+  uint32 limit = 5;
+}
+
+message SimilarityHit {
+  string id = 1;
+  string smiles = 2;
+  double score = 3;
+}
+
+message SimilarityResponse {
+  repeated SimilarityHit hits = 1;
+  uint64 count = 2;
+  uint64 took_us = 3;
+  uint64 scanned = 4;
+  uint64 total = 5;
+}
+
+message SubstructureRequest {
+  string db = 1;
+  string smarts = 2;
+  uint32 limit = 3;
+  uint32 offset = 4;
+  uint32 timeout_ms = 5;
+}
+
+message Hit {
+  string id = 1;
+  string smiles = 2;
+}
+
+message SubstructureResponse {
+  repeated Hit hits = 1;
+  uint64 count = 2;
+  uint64 took_us = 3;
+  uint64 screened = 4;
+  uint64 total = 5;
+}
+
+message MoleculeRequest { string smiles = 1; }
+
+message MoleculeResponse {
+  string formula = 1;
+  double weight = 2;
+  uint32 atoms = 3;
+  uint32 heavy_atoms = 4;
+  uint32 bonds = 5;
+  uint32 rings = 6;
+  uint32 aromatic_atoms = 7;
+  uint32 fingerprint_bits_set = 8;
+}

@@ -1,0 +1,17 @@
+[package]
+name = "mossflux-index"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+description = "In-memory fingerprint index with exact BitBound similarity search"
+keywords = ["cheminformatics", "fingerprint", "similarity", "bitbound", "index"]
+categories = ["science", "algorithms", "data-structures"]
+
+[dependencies]
+mossflux-core.workspace = true
+rayon.workspace = true
+flate2.workspace = true

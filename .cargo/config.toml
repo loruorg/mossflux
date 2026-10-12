@@ -1,0 +1,5 @@
+# Build for the host CPU so the compiler emits native popcount (CNT on AArch64,
+# POPCNT / AVX-512 VPOPCNTQ on x86-64) and vectorises the fingerprint kernels.
+# Override with CARGO_BUILD_RUSTFLAGS when cross-compiling / distributing.
+[build]
+rustflags = ["-C", "target-cpu=native"]

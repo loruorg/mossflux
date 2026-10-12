@@ -1,0 +1,28 @@
+/target
+
+# Datasets and generated indexes (large, regenerable)
+/data/*
+!/data/.gitkeep
+*.fps
+*.fpb
+*.seg
+*.mossflux
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+.DS_Store
+
+# extra venvs
+.venv*/
+
+# Claude Code session-recovery state
+HANDOFF.md
+.claude/quota-blocked.json
+.claude/stop-failure-events.jsonl
+.claude/rate-limit-state.json
+
+# Landing-page source videos (regenerable, paid; see scripts/site/gen_videos.mjs)
+/scripts/site/out/

@@ -1,0 +1,27 @@
+[package]
+name = "mossflux-cli"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+description = "Command-line tool for mossflux similarity and substructure search"
+keywords = ["cheminformatics", "fingerprint", "similarity", "substructure", "cli"]
+categories = ["science", "command-line-utilities"]
+
+[[bin]]
+name = "mossflux"
+path = "src/main.rs"
+
+[dependencies]
+mossflux-core.workspace = true
+mossflux-index.workspace = true
+mossflux-substruct.workspace = true
+clap.workspace = true
+rayon.workspace = true
+flate2.workspace = true
+mossflux-server.workspace = true
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

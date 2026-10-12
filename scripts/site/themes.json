@@ -1,0 +1,51 @@
+{
+  "seconds": 6,
+  "model": "seedance-2-5",
+  "style": "One continuous shot with no cuts and no transitions. The camera moves slowly and steadily in one direction for the whole clip, with no shake. Vivid low-key cinematic look: deep green-black shadows set against luminous, saturated emerald greens and glowing warm brass-gold highlights, strong contrast, crisp detail, shallow depth of field, fine film grain. No text, no letters, no numbers, no logos, no watermark, no people.",
+  "framing": {
+    "l": "Keep the left third and the bottom of the frame dark and calm, as negative space. The brightest detail sits right of center.",
+    "p": "Keep the bottom half of the frame dark and calm, as negative space. The brightest detail sits in the upper half."
+  },
+  "themes": [
+    {
+      "id": "moss",
+      "name": "Moss on basalt",
+      "prompt": "Extreme macro at ground level of a dense carpet of moss on wet black basalt. Thin sporophyte stalks rise from it, each tipped with a small brass-coloured capsule, and dew droplets glint. Low raking light from the right. The camera glides slowly forward just above the moss."
+    },
+    {
+      "id": "cells",
+      "name": "Chloroplast streaming",
+      "prompt": "Dark-field microscope view of moss leaf cells: rows of long cells with glowing green chloroplasts drifting in slow streams along the cell walls, against near-black. A faint warm rim light on the cell walls. The camera pushes in slowly."
+    },
+    {
+      "id": "molecules",
+      "name": "Glass and brass molecules",
+      "prompt": "Abstract ball-and-stick molecular models floating at different depths in a green-black void. Atoms are smoked-glass spheres and brushed-brass spheres, bonds are thin brass rods, and some molecules have hexagonal rings. The camera dollies slowly forward between them while they turn very slowly."
+    },
+    {
+      "id": "bitfield",
+      "name": "Bit field",
+      "prompt": "A vast dark plane covered edge to edge with a fine grid of tiny rectangular cells. Most cells are dark, some glow pale green, a few glow warm brass, like an endless field of binary data. Low angle, rows recede to a misty horizon. The camera flies slowly forward, low over the grid."
+    },
+    {
+      "id": "ink",
+      "name": "Ink flux",
+      "prompt": "Macro of dark green ink and metallic brass pigment unfolding in black water. Slow silky plumes fold and curl into each other. The camera drifts slowly forward through the plumes."
+    },
+    {
+      "id": "aerial",
+      "name": "Moss lava field",
+      "prompt": "Aerial shot at dusk over an Icelandic lava field covered in thick green moss, with mist pooled in the hollows and the last warm brass light along the horizon. The drone flies slowly forward and descends a little."
+    },
+    {
+      "id": "vials",
+      "name": "Vial rack",
+      "prompt": "A dim chemistry lab at night. A long rack of small glass vials filled with softly luminous green liquid, with brass caps and caustic reflections on a dark bench. The camera tracks slowly sideways along the rack, with shallow focus."
+    },
+    {
+      "id": "forest",
+      "name": "Forest floor",
+      "prompt": "Old-growth forest floor at dawn: fallen logs and stones under thick moss, low fog, and thin shafts of warm light between the trunks. The camera rises slowly from ground level."
+    }
+  ]
+}
