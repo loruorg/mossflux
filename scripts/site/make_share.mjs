@@ -3,7 +3,7 @@
 //   node scripts/site/make_share.mjs [theme] [seconds]
 //
 // Needs ffmpeg and a global Playwright install (npm i -g playwright). The card
-// is a frame of one source clip (default: roots at 5 s) with the headline set
+// is a frame of one source clip (default: ignite at 7.5 s) with the headline set
 // in the site's own fonts, so it matches the page it links to.
 
 import fs from 'node:fs/promises';
@@ -15,45 +15,45 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.join(here, '..', '..', 'site');
-const [theme = 'roots', at = '5'] = process.argv.slice(2);
+const [theme = 'ignite', at = '7.5'] = process.argv.slice(2);
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT || path.join(execSync('npm root -g').toString().trim(), 'playwright'));
 
 const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'mossflux-share-'));
 const frame = path.join(tmp, 'frame.png');
 execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', at, '-i',
-  path.join(here, 'out', `${theme}-l.mp4`), '-frames:v', '1', frame]);
+  path.join(here, 'out', `${theme}-l.mp4`), '-frames:v', '1', '-vf', 'hue=s=0', frame]);
 
 const font = (f) => pathToFileURL(path.join(site, 'fonts', f)).href;
-const mark = `<svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="#3DFF8E"/></svg>`;
+const mark = `<svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="none" stroke="#fff" stroke-width="3"/></svg>`;
 
 const card = `<!doctype html><meta charset="utf-8"><style>
 @font-face { font-family: Erode; src: url(${font('Erode-Variable.woff2')}); font-weight: 300 700; }
 @font-face { font-family: Erode; src: url(${font('Erode-VariableItalic.woff2')}); font-weight: 300 700; font-style: italic; }
 @font-face { font-family: Tabular; src: url(${font('Tabular-Regular.woff2')}); }
 html, body { margin: 0; }
-body { width: 1200px; height: 630px; position: relative; overflow: hidden; color: #E9F5EC;
+body { width: 1200px; height: 630px; position: relative; overflow: hidden; color: #fff;
   font-family: Erode, Georgia, serif; -webkit-font-smoothing: antialiased;
-  background: #030604 url(${pathToFileURL(frame).href}) 70% 50% / cover; }
+  background: #000 url(${pathToFileURL(frame).href}) 70% 50% / cover; }
 .v { position: absolute; inset: 0; background: linear-gradient(90deg,
-  rgba(3,6,4,.94) 0, rgba(3,6,4,.8) 38%, rgba(3,6,4,.3) 65%, rgba(3,6,4,0) 85%); }
+  rgba(0,0,0,.95) 0, rgba(0,0,0,.85) 42%, rgba(0,0,0,.35) 70%, rgba(0,0,0,.1) 90%); }
 .t { position: absolute; left: 76px; top: 70px; bottom: 70px; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 14px; font-weight: 600; font-size: 30px; letter-spacing: -.01em; }
 .brand span { font-family: Tabular; font-size: 16px; font-weight: 400; padding-top: 4px; }
-h1 b { color: #3DFF8E; font-weight: 600; }
+h1 b { color: #fff; font-weight: 600; }
 h1 { margin: auto 0 0; font-weight: 600; font-size: 74px; line-height: 1.0; letter-spacing: -.024em; max-width: 12ch; }
 p { margin: 30px 0 0; font-family: Tabular; font-size: 19px; letter-spacing: .01em; }
 </style>
 <div class="v"></div>
 <div class="t">
   <div class="brand">${mark}mossflux</div>
-  <h1>Search <b>2.9 million</b> molecules in <b>milliseconds.</b></h1>
-  <p>Exact similarity and substructure search · Rust · live demo</p>
+  <h1>Exact similarity search at billions of molecules per second.</h1>
+  <p>Similarity and SMARTS search · Rust · REST, gRPC, MCP</p>
 </div>`;
 
-const icon = `<!doctype html><style>html,body{margin:0;background:#030604}</style>
-<svg viewBox="0 0 20 20" width="180" height="180"><rect width="20" height="20" fill="#030604"/>
-<circle cx="10" cy="10" r="5.5" fill="#3DFF8E"/></svg>`;
+const icon = `<!doctype html><style>html,body{margin:0;background:#000}</style>
+<svg viewBox="0 0 20 20" width="180" height="180"><rect width="20" height="20" fill="#000"/>
+<circle cx="10" cy="10" r="5" fill="none" stroke="#fff" stroke-width="2"/></svg>`;
 
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });

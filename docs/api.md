@@ -8,8 +8,7 @@
 | MCP | `:8080/mcp` (HTTP), or `mossflux mcp` (stdio) | AI agents |
 | gRPC | `:50051` | Services; schema in [`proto/mossflux.proto`](../crates/mossflux-server/proto/mossflux.proto) |
 
-Public demo (ChEMBL 37): REST and MCP at `https://api.mossflux.com`, gRPC at
-`grpc.mossflux.com:443` (TLS).
+Public demo (ChEMBL 37): REST and MCP at `https://api.mossflux.com`.
 
 All three return the same answers. Counts are always exact; `limit` caps only
 the hit list.
@@ -132,9 +131,6 @@ Service `mossflux.v1.Search`: `ListDatabases`, `Similarity`, `Substructure`,
 ```sh
 grpcurl -plaintext -import-path crates/mossflux-server/proto -proto mossflux.proto \
   -d '{"smarts":"c1ccncc1","limit":1}' localhost:50051 mossflux.v1.Search/Substructure
-
-grpcurl -import-path crates/mossflux-server/proto -proto mossflux.proto \
-  -d '{"smiles":"CC(=O)Oc1ccccc1C(=O)O","k":5}' grpc.mossflux.com:443 mossflux.v1.Search/Similarity
 ```
 
 ## Limits

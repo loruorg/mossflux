@@ -1,31 +1,35 @@
 {
-  "seconds": 8,
-  "model": "veo-3.1-generate-preview",
-  "style": "Photorealistic, real-world footage shot on a cinema camera with a macro lens. One continuous shot, no cuts. Constant, clearly visible motion for the whole clip. Low-key look: near-black shadows, rich deep greens and a few bright emerald highlights, strong contrast, crisp detail, shallow depth of field. No text, no letters, no logos, no watermark, no people, no hands.",
+  "seconds": 10,
+  "model": "kling-v3-0",
+  "style": "Abstract black and white motion graphics, monochrome, white and silver light on pure black, no color. The clip starts on a completely black frame and the action builds steadily to a striking climax in the last seconds. One continuous shot, smooth motion, crisp detail, high contrast, cinematic. No text, no letters, no numbers, no logos, no people.",
   "framing": {
-    "l": "Keep the left half of the frame darker and calm, as space for text. The brightest detail sits right of center.",
-    "p": "Keep the bottom half of the frame darker and calm, as space for text. The brightest detail sits in the upper half."
+    "l": "The main action is centered."
   },
   "themes": [
     {
-      "id": "mycelium",
-      "name": "Mycelium network",
-      "prompt": "Time-lapse macro of real white-green fungal mycelium spreading across dark wet forest soil: fine threads branch, grow toward each other and fuse into a glowing web that links small plant roots. The camera pushes in slowly."
+      "id": "ignite",
+      "name": "Ignition network",
+      "prompt": "From pure black, a single tiny point of white light appears in the center. It pulses, then splits and branches outward faster and faster into thousands of fine glowing white filaments that connect into a vast three-dimensional network filling the whole frame. The camera slowly pulls back."
     },
     {
-      "id": "fern",
-      "name": "Fern unfurling",
-      "prompt": "Time-lapse of a real fern fiddlehead slowly unrolling into a bright green frond in a dark forest, beads of dew catching a soft green light, other young fronds unfurling behind it. The camera drifts slowly upward."
+      "id": "scan",
+      "name": "Scan",
+      "prompt": "From pure black, a vast flat grid of millions of tiny dim white dots stretches to the horizon. A bright vertical wall of white light sweeps quickly across the grid from left to right; every dot it touches flashes and then fades, and only a handful of dots stay blazing white after it passes. Low camera angle, the camera tracks along with the sweep."
     },
     {
-      "id": "roots",
-      "name": "Roots over basalt",
-      "prompt": "Time-lapse macro of real pale-green plant roots and moss creeping across black volcanic basalt, the root tips branching and joining into a connected network, wet stone glistening. The camera glides slowly sideways."
+      "id": "lattice",
+      "name": "Lattice",
+      "prompt": "From pure black, thousands of small white particles rush in from every direction and snap together into a precise hexagonal lattice of rings and bonds, like an endless molecular crystal. Once it locks into place, a wave of light ripples across the whole structure. The camera slowly rotates around it."
     },
     {
-      "id": "glow",
-      "name": "Glowing fungi",
-      "prompt": "Night macro of real bioluminescent mushrooms glowing soft green on a mossy fallen log in a dark forest, faint green threads of light running through the moss between them, tiny spores drifting in the air. The camera pushes in slowly."
+      "id": "warp",
+      "name": "Warp",
+      "prompt": "From pure black, faint white points appear, then stretch into streaks as the camera accelerates forward through them, faster and faster, until the streaks form a brilliant tunnel of light rushing past. At the end everything converges into a single bright point."
+    },
+    {
+      "id": "bloom",
+      "name": "Bloom",
+      "prompt": "From pure black, a single drop of liquid silver falls in slow motion into a still black liquid surface. It creates a sharp crown splash, then perfect concentric rings of light spread outward across the whole surface. Macro, slow motion."
     }
   ]
 }

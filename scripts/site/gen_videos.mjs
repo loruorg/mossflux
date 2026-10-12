@@ -23,7 +23,7 @@ const cfg = JSON.parse(await fs.readFile(path.join(here, 'themes.json'), 'utf8')
 
 const args = process.argv.slice(2);
 const oi = args.indexOf('--orient');
-const orients = oi >= 0 ? [args.splice(oi, 2)[1]] : ['l', 'p'];
+const orients = oi >= 0 ? [args.splice(oi, 2)[1]] : Object.keys(cfg.framing);
 const only = new Set(args);
 const themes = cfg.themes.filter((t) => !only.size || only.has(t.id));
 
