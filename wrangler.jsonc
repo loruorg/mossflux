@@ -1,9 +1,11 @@
 // Static site at mossflux.com (Cloudflare Workers static assets).
+// deploy/site-worker.js runs first for /bg/* to serve byte ranges.
 // Deploy: npx wrangler deploy
 {
   "name": "mossflux",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./site", "not_found_handling": "404-page" },
+  "main": "deploy/site-worker.js",
+  "assets": { "directory": "./site", "binding": "ASSETS", "not_found_handling": "404-page", "run_worker_first": ["/bg/*"] },
   "routes": [
     { "pattern": "mossflux.com", "custom_domain": true },
     { "pattern": "www.mossflux.com", "custom_domain": true }

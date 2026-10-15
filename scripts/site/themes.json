@@ -1,0 +1,70 @@
+{
+  "frameModel": "gemini-nano-banana-2.1",
+  "videoModel": "seedance-2-5",
+  "seconds": 10,
+  "size": "1920x1080",
+  "frameStyle": "Cinematic 3D render with photoreal materials. Pure black background that fades to black at every edge. Soft white rim light with a few faint emerald-green glints. High contrast, crisp detail, shallow depth of field, subtle film grain. No text, no letters, no numbers, no logos, no watermark, no people.",
+  "motionStyle": "One continuous shot, no cuts. Slow, smooth, constant motion for the whole clip. The last frame matches the first frame, so the clip loops seamlessly. Keep the same lighting, colors and composition. No text, no logos, no people, no camera shake, no flashes.",
+  "themes": [
+    {
+      "id": "molecule",
+      "focus": 64,
+      "frame": "A caffeine molecule built as a ball-and-stick model from clear optical glass spheres joined by thin polished silver rods, floating in darkness, seen in three-quarter perspective so it has real depth. The molecule sits right of center; the left third of the frame is empty near-black space.",
+      "motion": "The molecule turns slowly about its vertical axis. Midway, its atoms drift a short way apart into an exploded view and hang in the air while light refracts through the glass, then glide back together into the original shape. The camera orbits a little and returns."
+    },
+    {
+      "id": "lattice",
+      "focus": 62,
+      "frame": "An exploded view of a layered crystal: five thin parallel sheets of hexagonal graphene-like lattice, each of dark smoked glass with bright white light running along the bonds, stacked with wide gaps between them, seen from a low three-quarter angle, floating in darkness. The stack sits right of center; the left third of the frame is empty near-black space.",
+      "motion": "The sheets drift slowly apart and together again like breathing, each turning a few degrees and back. Pulses of white light travel along the hexagon bonds. The camera rises slightly and returns."
+    },
+    {
+      "id": "moss",
+      "focus": 60,
+      "frame": "Extreme macro photograph of a dark carpet of moss at night, each tiny frond tipped with a dew drop, and a narrow river of thousands of tiny glowing white and pale-green particles flowing through the moss like a stream of data. The brightest part is right of center; the left side is darker.",
+      "motion": "The glowing particles flow steadily through the moss from left to right and never stop. The dew drops shimmer. The camera pushes in very slowly and drifts back."
+    },
+    {
+      "id": "ferro",
+      "focus": 62,
+      "frame": "Black ferrofluid on a mirror-black surface, its sharp spikes arranged in a hexagonal ring like a benzene ring, chrome-white reflections on every spike and one faint emerald reflection. Low studio macro angle. The ring sits right of center; the left third of the frame is empty near-black space.",
+      "motion": "The ferrofluid spikes rise, sharpen and sink in slow waves that ripple around the ring, then settle back into the same hexagonal ring. The camera slides slowly sideways and back."
+    },
+    {
+      "id": "fiber",
+      "focus": 60,
+      "frame": "A dense field of thousands of thin fiber-optic strands rising from darkness like tall grass, each tip glowing white and a few glowing emerald, seen from a low angle with shallow depth of field. The densest, brightest strands are right of center; the left side fades into darkness.",
+      "motion": "The strands sway gently as if underwater, in slow waves. Small pulses of light travel up the strands to their tips. The camera drifts slowly forward and back."
+    },
+    {
+      "id": "scan",
+      "focus": 55,
+      "frame": "An endless dark plane covered with thousands of tiny glass molecules in a precise grid, receding to the horizon under a deep black sky, seen from a low camera angle, faint silver reflections on the glass. A few molecules glow bright white.",
+      "motion": "A thin vertical wall of white light sweeps slowly across the grid from left to right; each molecule it passes lights up briefly and fades, and only a few stay bright. The wall enters at the left edge and leaves at the right edge before the clip ends. The camera glides slowly forward."
+    },
+    {
+      "id": "galaxy",
+      "focus": 62,
+      "frame": "A vast cloud of millions of tiny white and silver particles in deep space, shaped like a spiral galaxy whose arms form a giant hexagonal ring like a benzene molecule, thin dark dust lanes, a faint emerald glow at the core, seen at an angle. The cloud sits right of center; the left third of the frame is empty black space.",
+      "motion": "The particle cloud turns slowly around its center like a galaxy. Streams of particles flow along the arms. The camera tilts slightly and returns."
+    },
+    {
+      "id": "network",
+      "focus": 62,
+      "frame": "A deep three-dimensional network of thin glowing white filaments, like mycelium or neurons, with bright nodes where the filaments meet, receding into black depth with soft bokeh, a few emerald nodes. Denser and brighter right of center; the left side is sparse and dark.",
+      "motion": "Pulses of light run along the filaments from node to node. The camera moves slowly forward through the network and drifts back."
+    },
+    {
+      "id": "chip",
+      "focus": 63,
+      "frame": "An exploded view of a processor chip floating in darkness: a polished silicon die, a copper heat spreader, a dark circuit substrate and a grid of gold contact pads, separated vertically with wide gaps, seen from a low three-quarter angle, fine circuit traces glowing white. The stack sits right of center; the left third of the frame is empty near-black space.",
+      "motion": "The layers drift slowly further apart and back together. Points of light race along the circuit traces. The camera orbits slightly and returns."
+    },
+    {
+      "id": "hexwall",
+      "focus": 60,
+      "frame": "A wall of thousands of small hexagonal tiles of black glass and brushed silver, receding at a steep angle into darkness, a few tiles glowing white. The brightest tiles are right of center; the left side falls into shadow.",
+      "motion": "A slow wave ripples across the wall from left to right; the tiles tilt and flip as it passes, catching the light, then settle flat again. The camera drifts slowly sideways."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-/* mossflux.com. One continuous WebGL particle flow behind four sections.
-   Scroll moves the flow through four shapes; light trails come from a
-   feedback buffer. API base: API below, or ?api=<url> for local testing. */
+/* mossflux.com. A background loop (chosen in index.html) behind four sections;
+   scroll zooms it and dims it behind the content.
+   API base: API below, or ?api=<url> for local testing. */
 (function () {
   'use strict';
 
@@ -19,151 +19,12 @@
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var secs = [].slice.call(doc.querySelectorAll('.sec'));
 
-  /* ------------------------------------------------------------ flow */
-  var flow = (function () {
-    var cv = $('flux');
-    var g = cv.getContext('webgl', { antialias: false, alpha: false, depth: false, preserveDrawingBuffer: false });
-    if (!g) { return null; }
-    var small = innerWidth < 760;
-    var N = small ? 40000 : 110000;
-
-    var VS = [
-      'attribute vec4 a_s;',
-      'uniform float u_k, u_t, u_aspect, u_px, u_off, u_stir;',
-      'varying float v_a;',
-      'const float PI = 3.14159265;',
-      'vec3 vortex(vec4 s, float t) {',
-      '  float r = 0.16 + 0.84 * pow(s.y, 0.65);',
-      '  float th = s.x * 6.2832 + t * 0.10 / (r + 0.25) + floor(s.z * 3.0) * 2.0944 + r * 2.8;',
-      '  vec3 p = vec3(cos(th) * r, (s.w - 0.5) * 0.10 * (1.15 - r), sin(th) * r);',
-      '  float tl = 1.08; p = vec3(p.x, p.y * cos(tl) - p.z * sin(tl), p.y * sin(tl) + p.z * cos(tl));',
-      '  float z = p.z + 2.3;',
-      '  return vec3(p.x * 1.7 / z / u_aspect * 1.25 + u_off, p.y * 1.7 / z + 0.02, 0.55 * (1.25 - r * 0.6));',
-      '}',
-      'vec3 lanes(vec4 s, float t) {',
-      '  float lane = floor(s.z * 9.0);',
-      '  float fast = step(8.0, lane);',
-      '  float sp = mix(0.05 + 0.25 * fract(lane * 0.618 + 0.3), 1.6, fast) * (0.8 + 0.4 * s.y);',
-      '  float x = fract(s.x + t * sp * 0.3) * 2.8 - 1.4;',
-      '  float y = -0.6 + lane * 0.15 + (s.w - 0.5) * 0.05 + 0.02 * sin(x * 3.0 + lane + t);',
-      '  float pk = smoothstep(0.55, 1.0, fract(s.x * 5.0 + s.y * 0.15));',
-      '  return vec3(x, y, (0.5 + 0.5 * fast) * (0.2 + 0.8 * pk));',
-      '}',
-      'vec3 band(vec4 s, float t) {',
-      '  float v = (s.x + s.y + s.z) / 3.0;',
-      '  float col = floor(v * 96.0) / 96.0;',
-      '  float h = exp(-pow((col - 0.5) / 0.11, 2.0)) * 1.25;',
-      '  float y = -0.72 + fract(s.w + t * 0.03) * h;',
-      '  float inb = step(0.565, col) * step(col, 0.635);',
-      '  return vec3((col - 0.5) * 2.4 + u_off * 0.4, y, mix(0.05, 0.5, inb));',
-      '}',
-      'vec3 field(vec4 s, float t) {',
-      '  float gx = s.x - 0.5, gz = fract(s.y - t * 0.025);',
-      '  float z = 0.25 + gz * 5.0, x = gx * 9.0;',
-      '  float y = -0.5 + 0.06 * sin(gx * 18.0 + t * 0.7 + gz * 9.0) + 0.04 * sin(s.z * 40.0 + t);',
-      '  return vec3(x / z * 0.9, y / z * 0.9 + 0.12, 0.5 * (1.0 - gz) * (1.0 - gz));',
-      '}',
-      'vec3 form(float k, vec4 s, float t) {',
-      '  if (k < 0.5) return vortex(s, t);',
-      '  if (k < 1.5) return lanes(s, t);',
-      '  if (k < 2.5) return band(s, t);',
-      '  return field(s, t);',
-      '}',
-      'void main() {',
-      '  float i = floor(u_k), f = u_k - i;',
-      '  float m = clamp((f - 0.5) * 1.7 + 0.5 + (a_s.w - 0.5) * 0.7, 0.0, 1.0);',
-      '  m = m * m * (3.0 - 2.0 * m);',
-      '  vec3 A = form(i, a_s, u_t), B = form(min(i + 1.0, 3.0), a_s, u_t);',
-      '  vec3 p = mix(A, B, m);',
-      '  float sw = sin(m * PI);',
-      '  vec2 q = p.xy * 2.3 + vec2(a_s.z * 6.0, a_s.x * 6.0);',
-      '  vec2 curl = vec2(sin(q.y + u_t * 0.7), cos(q.x * 1.3 - u_t * 0.5));',
-      '  p.xy += curl * (sw * 0.22 + u_stir * 0.02 + 0.006);',
-      '  v_a = p.z * (1.0 + sw * 0.6);',
-      '  gl_Position = vec4(p.xy, 0.0, 1.0);',
-      '  gl_PointSize = u_px * (1.0 + sw * 0.6);',
-      '}'
-    ].join('\n');
-    var FS = 'precision mediump float; varying float v_a; void main() { float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(vec3(v_a * smoothstep(0.5, 0.0, d) * 0.42), 1.0); }';
-    var QV = 'attribute vec2 a_p; varying vec2 v_uv; void main() { v_uv = a_p * 0.5 + 0.5; gl_Position = vec4(a_p, 0.0, 1.0); }';
-    var FADE = 'precision mediump float; uniform sampler2D u_tex; uniform float u_decay; varying vec2 v_uv; void main() { vec3 c = texture2D(u_tex, v_uv).rgb; gl_FragColor = vec4(max(c * u_decay - 0.006, 0.0), 1.0); }';
-    var SHOW = 'precision mediump float; uniform sampler2D u_tex; varying vec2 v_uv; void main() { vec3 c = texture2D(u_tex, v_uv).rgb; float l = dot(c, vec3(0.333)); l = 1.0 - exp(-l * 1.6); float vg = smoothstep(1.25, 0.35, length(v_uv - 0.5) * 1.6); gl_FragColor = vec4(vec3(l * vg), 1.0); }';
-
-    function prog(vs, fs) {
-      var p = g.createProgram();
-      [[g.VERTEX_SHADER, vs], [g.FRAGMENT_SHADER, fs]].forEach(function (x) {
-        var s = g.createShader(x[0]); g.shaderSource(s, x[1]); g.compileShader(s);
-        if (!g.getShaderParameter(s, g.COMPILE_STATUS)) { throw new Error(g.getShaderInfoLog(s)); }
-        g.attachShader(p, s);
-      });
-      g.linkProgram(p);
-      return p;
-    }
-    var P, F, S;
-    try { P = prog(VS, FS); F = prog(QV, FADE); S = prog(QV, SHOW); } catch (e) { return null; }
-
-    var seeds = new Float32Array(N * 4), r = 1;
-    for (var i = 0; i < N * 4; i++) { r = (r * 16807) % 2147483647; seeds[i] = r / 2147483647; }
-    var sb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, sb); g.bufferData(g.ARRAY_BUFFER, seeds, g.STATIC_DRAW);
-    var qb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, qb); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
-    var U = {};
-    ['u_k', 'u_t', 'u_aspect', 'u_px', 'u_off', 'u_stir'].forEach(function (n) { U[n] = g.getUniformLocation(P, n); });
-
-    var fb = [], tx = [], W = 0, H = 0, cur = 0;
-    function target(w, h) {
-      tx.forEach(function (t) { g.deleteTexture(t); }); fb.forEach(function (f) { g.deleteFramebuffer(f); });
-      tx = []; fb = [];
-      for (var j = 0; j < 2; j++) {
-        var t = g.createTexture(); g.bindTexture(g.TEXTURE_2D, t);
-        g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, w, h, 0, g.RGBA, g.UNSIGNED_BYTE, null);
-        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
-        g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE); g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
-        var f = g.createFramebuffer(); g.bindFramebuffer(g.FRAMEBUFFER, f);
-        g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0, g.TEXTURE_2D, t, 0);
-        g.clearColor(0, 0, 0, 1); g.clear(g.COLOR_BUFFER_BIT);
-        tx.push(t); fb.push(f);
-      }
-    }
-    function resize() {
-      W = Math.round(cv.clientWidth * DPR); H = Math.round(cv.clientHeight * DPR);
-      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; target(W, H); }
-    }
-    function quad(p) {
-      g.bindBuffer(g.ARRAY_BUFFER, qb);
-      var l = g.getAttribLocation(p, 'a_p'); g.enableVertexAttribArray(l); g.vertexAttribPointer(l, 2, g.FLOAT, false, 0, 0);
-      g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
-    }
-    function frame(k, t, stir) {
-      var nxt = 1 - cur;
-      g.bindFramebuffer(g.FRAMEBUFFER, fb[nxt]); g.viewport(0, 0, W, H);
-      g.disable(g.BLEND);
-      g.useProgram(F); g.activeTexture(g.TEXTURE0); g.bindTexture(g.TEXTURE_2D, tx[cur]);
-      g.uniform1i(g.getUniformLocation(F, 'u_tex'), 0); g.uniform1f(g.getUniformLocation(F, 'u_decay'), 0.9);
-      quad(F);
-      g.enable(g.BLEND); g.blendFunc(g.ONE, g.ONE);
-      g.useProgram(P);
-      g.bindBuffer(g.ARRAY_BUFFER, sb);
-      var l = g.getAttribLocation(P, 'a_s'); g.enableVertexAttribArray(l); g.vertexAttribPointer(l, 4, g.FLOAT, false, 0, 0);
-      g.uniform1f(U.u_k, k); g.uniform1f(U.u_t, t); g.uniform1f(U.u_aspect, W / H);
-      g.uniform1f(U.u_px, (small ? 1.3 : 1.5) * DPR); g.uniform1f(U.u_off, small ? 0.0 : 0.36); g.uniform1f(U.u_stir, stir);
-      g.drawArrays(g.POINTS, 0, N);
-      g.disable(g.BLEND);
-      g.bindFramebuffer(g.FRAMEBUFFER, null); g.viewport(0, 0, W, H);
-      g.useProgram(S); g.bindTexture(g.TEXTURE_2D, tx[nxt]); g.uniform1i(g.getUniformLocation(S, 'u_tex'), 0);
-      quad(S);
-      cur = nxt;
-    }
-    resize();
-    return { resize: resize, frame: frame };
-  })();
-
   /* ------------------------------------------------------------ scroll */
-  var centers = [], k = 0, last = performance.now(), t = 0, lastY = scrollY, stir = 0;
+  var centers = [], k = 0, last = performance.now(), shown = -1, bgv = $('bgv'), bgd = $('bgd');
   function measure() {
     var max = doc.documentElement.scrollHeight - innerHeight;
     centers = secs.map(function (s) { return clamp(s.offsetTop + s.offsetHeight / 2 - innerHeight / 2, 0, max); });
     centers[0] = 0; centers[centers.length - 1] = max;
-    if (flow) { flow.resize(); }
   }
   function targetK(y) {
     for (var i = 0; i < centers.length - 1; i++) {
@@ -189,9 +50,11 @@
     var y = scrollY, kt = targetK(y);
     k += (kt - k) * (1 - Math.pow(0.04, dt));
     if (Math.abs(kt - k) < 0.0005) { k = kt; }
-    stir = stir * Math.pow(0.05, dt) + Math.abs(y - lastY) / innerHeight * 6; lastY = y;
-    if (!reduce) { t += dt; }
-    if (flow) { flow.frame(k, t, Math.min(stir, 3)); }
+    if (k !== shown) {
+      shown = k;
+      if (!reduce) { bgv.style.transform = 'scale(' + (1.02 + k * 0.025).toFixed(4) + ')'; }
+      bgd.style.opacity = (Math.min(k, 1) * 0.45).toFixed(3);
+    }
     sections();
     requestAnimationFrame(tick);
   }

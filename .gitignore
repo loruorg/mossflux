@@ -24,5 +24,8 @@ HANDOFF.md
 .claude/stop-failure-events.jsonl
 .claude/rate-limit-state.json
 
-# Landing-page source videos (regenerable, paid; see scripts/site/gen_videos.mjs)
+# Site keyframes and source clips (paid; see docs/development.md, "Site")
 /scripts/site/out/
+
+# wrangler local state
+.wrangler/
