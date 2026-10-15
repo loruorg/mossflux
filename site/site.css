@@ -20,15 +20,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 code, pre { font-family: var(--mono); }
 
-/* Background loop. app.js scales the video and raises the dim layer as the page scrolls. */
-.bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: #000; }
-.bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.02); will-change: transform; }
-.bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.05) 72%), linear-gradient(rgba(0,0,0,0.5), transparent 22%, transparent 70%, rgba(0,0,0,0.75)), radial-gradient(130% 100% at 62% 50%, transparent 50%, rgba(0,0,0,0.7)); }
-.bg .dim { position: absolute; inset: 0; background: #000; opacity: 0; }
-@media (max-aspect-ratio: 4/3) {
-  .bg video { object-position: var(--x, 50%) 50%; }
-  .bg::after { background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.75)); }
-}
+#flux { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; background: #000; }
 
 .top { position: fixed; inset: 0 0 auto; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 18px max(20px, calc((100vw - 1040px) / 2)); background: linear-gradient(#000 0%, rgba(0,0,0,0.6) 60%, transparent); }
 .logo { display: flex; align-items: center; gap: 10px; font: 600 19px var(--serif); text-decoration: none; }
@@ -128,5 +120,4 @@ h2 { font: 600 clamp(32px, 4.6vw, 60px)/1.02 var(--serif); letter-spacing: -0.03
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .in { filter: none; transform: none; }
-  .bg video { transform: none; }
 }

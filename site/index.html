@@ -26,37 +26,7 @@
 </head>
 <body>
 
-<div class="bg" aria-hidden="true">
-  <video id="bgv" muted playsinline loop autoplay preload="auto" disablepictureinpicture disableremoteplayback></video>
-  <div class="dim" id="bgd"></div>
-</div>
-<script>
-/* One of seven background loops per page load, from a shuffled bag in localStorage:
-   every loop plays once before any repeats. ?bg=<id> picks one. */
-(function () {
-  var BG = { molecule: 64, moss: 60, ferro: 62, scan: 55, network: 62, lattice: 62, chip: 63 };
-  var ids = Object.keys(BG), id = new URLSearchParams(location.search).get('bg'), st = {};
-  if (!BG[id]) {
-    try { st = JSON.parse(localStorage.getItem('mf-bg')) || {}; } catch (e) { /* new bag */ }
-    var bag = (st.bag || []).filter(function (b) { return BG[b]; });
-    if (!bag.length) {
-      bag = ids.slice();
-      for (var i = bag.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = bag[i]; bag[i] = bag[j]; bag[j] = t; }
-      if (bag[0] === st.last) { bag.push(bag.shift()); }
-    }
-    id = bag.shift();
-    try { localStorage.setItem('mf-bg', JSON.stringify({ bag: bag, last: id })); } catch (e) { /* private mode */ }
-  }
-  var v = document.getElementById('bgv'), base = 'bg/' + id;
-  document.documentElement.dataset.bg = id;
-  v.style.setProperty('--x', BG[id] + '%');
-  v.poster = base + '.webp';
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches || (navigator.connection && navigator.connection.saveData)) { return; }
-  v.src = base + (innerWidth < 760 ? '.720.mp4'
-    : v.canPlayType('video/mp4; codecs="av01.0.08M.10"') === 'probably' ? '.av1.mp4'
-    : v.canPlayType('video/mp4; codecs="hvc1.1.6.L120.90"') ? '.hevc.mp4' : '.720.mp4');
-})();
-</script>
+<canvas id="flux" aria-hidden="true"></canvas>
 
 <header class="top">
   <a class="logo" href="#about"><span class="mark"></span>mossflux</a>

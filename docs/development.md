@@ -51,21 +51,6 @@ python scripts/gen_fingerprints.py data/chembl_37_chemreps.txt.gz \
   data/chembl_37_256.fps --nbits 256
 ```
 
-## Site
-
-`site/` is static and deploys with `npx wrangler deploy`. Each page load plays
-one loop from `site/bg/`; the list is `BG` in `site/index.html`. A loop is made
-in three steps through LLM Gateway (`LLM_API_KEY`). Generation is paid, so
-`scripts/site/out/` (gitignored) keeps every keyframe, clip and job id.
-
-```sh
-node scripts/site/gen_frames.mjs <theme>     # keyframes; copy the best to out/bg/frames/<theme>.jpg
-node scripts/site/gen_videos.mjs <theme> --model seedance-2-5 --ref
-scripts/site/encode_bg.sh <theme> scripts/site/out/bg/<theme>.seedance-2-5.ref.mp4 xfade
-```
-
-Themes and prompts are in `scripts/site/themes.json`.
-
 ## Traps
 
 1. **rustfmt.** The tree is clean. If `cargo fmt` gives a diff much larger than
