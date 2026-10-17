@@ -16,6 +16,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
+  # Overrides target-cpu=native in .cargo/config.toml. Runner CPUs differ, and
+  # rust-cache restores binaries (build scripts too) that another CPU cannot run.
+  RUSTFLAGS: -C target-cpu=x86-64-v3
 
 jobs:
   fmt:
@@ -42,6 +45,8 @@ jobs:
   test:
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: ${{ startsWith(matrix.os, 'macos') && '-C target-cpu=apple-m1' || '-C target-cpu=x86-64-v3' }}
     strategy:
       fail-fast: false
       matrix:
