@@ -10,3 +10,4 @@ docs
 **/*.h5
 HANDOFF.md
 .DS_Store
+dist*

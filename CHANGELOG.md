@@ -1,5 +1,7 @@
 # Changelog
 
+Changes in each release.
+
 ## 0.1.0 — initial release
 
 - Exact Tanimoto similarity search (threshold and kNN) with BitBound pruning,
@@ -9,4 +11,7 @@
   layer and VF2, tested against a brute-force oracle and RDKit.
 - Input limits and search deadlines for untrusted input; no `unsafe` code.
 - `mossflux` CLI: `search`, `substruct`, `info`, `tanimoto`, `bench`,
-  `substruct-bench`.
+  `substruct-bench`, `serve` and `mcp`.
+- `mossflux serve`: REST, gRPC and MCP (streamable HTTP) over SMILES
+  databases, with its own ECFP4-style fingerprints. `mossflux mcp`: MCP over
+  stdio.

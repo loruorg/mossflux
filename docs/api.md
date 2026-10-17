@@ -1,12 +1,12 @@
 # API
 
-`mossflux serve` exposes one engine over three transports:
+`mossflux serve` answers the same searches over REST, MCP and gRPC. This page lists the endpoints, their fields and the limits.
 
 | Transport | Default address | Use |
 | --- | --- | --- |
 | REST (JSON) | `:8080` | Web apps, scripts, `curl` |
 | MCP | `:8080/mcp` (HTTP), or `mossflux mcp` (stdio) | AI agents |
-| gRPC | `:50051` | Services; schema in [`proto/mossflux.proto`](../crates/mossflux-server/proto/mossflux.proto) |
+| gRPC | `:50051` | Services; schema in [`mossflux.proto`](../crates/mossflux-server/proto/mossflux.proto) |
 
 Public demo (ChEMBL 37): REST and MCP at `https://api.mossflux.com`.
 
@@ -27,7 +27,8 @@ the hit list.
 ## REST
 
 Requests take a JSON body (`POST`) or the same fields as query parameters
-(`GET`). Errors are `{"error": "..."}` with status 400 (bad input), 404
+(`GET`). URL-encode a SMILES or SMARTS in a query string: `#`, `+` and `;` are
+common in both. Errors are `{"error": "..."}` with status 400 (bad input), 404
 (unknown database or id), 408 (deadline) or 503 (still loading).
 
 ### `GET /v1/databases`
@@ -40,7 +41,7 @@ Requests take a JSON body (`POST`) or the same fields as query parameters
 
 ### `POST /v1/similarity`
 
-| Field | Default | |
+| Field | Default | Description |
 | --- | --- | --- |
 | `smiles` | required | Query molecule |
 | `threshold` | 0.7 | Every molecule with Tanimoto ≥ threshold, in `(0, 1]` |
@@ -64,7 +65,7 @@ rest. `took_us` is server time, fingerprinting included.
 
 ### `POST /v1/substructure`
 
-| Field | Default | |
+| Field | Default | Description |
 | --- | --- | --- |
 | `smarts` | required | Pattern |
 | `limit` | 100 | Hits returned |
@@ -73,7 +74,7 @@ rest. `took_us` is server time, fingerprinting included.
 | `db` | first | Database name |
 
 ```sh
-curl -s 'localhost:8080/v1/substructure?smarts=S(=O)(=O)N&limit=2'
+curl -sG localhost:8080/v1/substructure --data-urlencode 'smarts=S(=O)(=O)N' -d limit=2
 ```
 
 ```json
@@ -95,7 +96,7 @@ Formula, weight and counts of one SMILES.
 
 ### Other
 
-| Path | |
+| Path | Returns |
 | --- | --- |
 | `GET /v1/databases/{db}/molecules/{id}` | One stored molecule |
 | `GET /health` | 200 when the process is up |
@@ -143,4 +144,4 @@ grpcurl -plaintext -import-path crates/mossflux-server/proto -proto mossflux.pro
 | `--max-concurrent` | `MOSSFLUX_MAX_CONCURRENT` | 4 searches at once; more wait |
 
 Queries are limited to 4,096 bytes and request bodies to 64 KiB. The parser
-limits for SMILES and SMARTS are in [design.md](design.md#limits-and-deadlines).
+limits for SMILES and SMARTS are in [Design](design.md#limits-and-deadlines).

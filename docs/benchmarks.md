@@ -1,5 +1,7 @@
 # Benchmarks
 
+Measured speed of mossflux against RDKit, FPSim2 and Arthor, with the machine, data and method of each run.
+
 Every number has its conditions. A number without them is not a result.
 All runs are exact: each fast path is checked against a brute-force or f64
 reference on every query of the run, and the run fails on any difference.

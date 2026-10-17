@@ -6,7 +6,7 @@ set -euo pipefail
 DEST="$(cd "$(dirname "$0")/.." && pwd)/data"
 mkdir -p "$DEST"
 
-URL="https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_37_chemreps.txt.gz"
+URL="https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_37/chembl_37_chemreps.txt.gz"
 OUT="$DEST/chembl_37_chemreps.txt.gz"
 
 echo "Downloading $URL"

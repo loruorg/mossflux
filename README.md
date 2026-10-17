@@ -6,6 +6,9 @@ over binary fingerprints, threshold and kNN) and **substructure search**
 SMARTS parsers, ring and aromaticity perception, screen and subgraph matcher
 are all written here, with no external chemistry library and no `unsafe` code.
 
+Docs: [mossflux.com/docs](https://mossflux.com/docs/). Live demo on ChEMBL 37:
+[mossflux.com](https://mossflux.com/#demo).
+
 ## Features
 
 - Threshold and kNN similarity search with exact f64 scores.
@@ -21,74 +24,31 @@ are all written here, with no external chemistry library and no `unsafe` code.
 - A server with REST, gRPC and MCP endpoints over SMILES databases, with its
   own ECFP4-style fingerprints, so a similarity query is just a SMILES.
 
-Live demo on ChEMBL 37: [mossflux.com](https://mossflux.com/).
-
 ## Quick start
 
-```sh
-cargo build --release --all
-./target/release/mossflux --help
-```
-
-The default build targets the host CPU. For a portable binary:
-
-```sh
-RUSTFLAGS="-C target-cpu=x86-64-v3" cargo build --release --all
-```
-
-Examples (real output, ChEMBL 37):
-
-```
-$ ./target/release/mossflux tanimoto 0f0f 0ff0
-0.333333
-
-$ ./target/release/mossflux info --fps data/chembl_37.fps.gz
-loaded 2,897,819 fingerprints × 2048 bits in 4.40s (659071 mol/s)
-fingerprints : 2,897,819
-width        : 2048 bits (32 u64 lanes)
-memory        : 707.5 MiB (fingerprints)
-popcount      : min 1, median 51, mean 52.5, max 249
-
-$ ./target/release/mossflux search --fps data/chembl_37.fps.gz \
-    --query-id CHEMBL153534 --threshold 0.9 --limit 5
-loaded 2,897,819 fingerprints × 2048 bits in 4.42s (656239 mol/s)
-1 hits in 13.012 ms (showing 1)
-  1.0000  CHEMBL153534
-```
-
-Substructure search over a SMILES file. Give one run all its queries; the
-index is built in memory per run:
-
-```sh
-./target/release/mossflux substruct --smiles data/chembl_37_chemreps.txt.gz \
-    --smarts 'c1ccc2ccccc2c1' --smarts '[NX3;!$(NC=O)]' --count --timeout 30
-./target/release/mossflux substruct --smiles my.smi --smarts 'C(=O)[OH]' \
-    --format tsv > hits.tsv
-```
-
-Subcommands: `search`, `substruct`, `info`, `tanimoto`, `bench`,
-`substruct-bench`, `serve` and `mcp`.
-Get the data with `./scripts/fetch_chembl.sh`; see
-[docs/development.md](docs/development.md).
-
-## Run as a service
+Serve a SMILES file (REST and MCP on 8080, gRPC on 50051):
 
 ```sh
 docker run -p 8080:8080 -p 50051:50051 -v "$PWD/data:/data:ro" \
-  loruorg/mossflux:latest serve --db chembl=/data/chembl_37_chemreps.txt.gz
+  loruorg/mossflux serve --db chembl=/data/chembl_37_chemreps.txt.gz
 
-curl -s 'localhost:8080/v1/substructure?smarts=c1ccc2[nH]ccc2c1&limit=5'
-curl -s localhost:8080/v1/similarity -H 'content-type: application/json' \
-  -d '{"smiles":"CC(=O)Oc1ccccc1C(=O)O","threshold":0.6}'
+curl -sG localhost:8080/v1/substructure --data-urlencode 'smarts=c1ccc2[nH]ccc2c1' -d limit=5
 ```
 
-REST and MCP (`/mcp`) on 8080, gRPC on 50051. Docker Compose and Kubernetes:
-[docs/deploy.md](docs/deploy.md). Endpoints: [docs/api.md](docs/api.md).
+Or install the CLI:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" cargo install --git https://github.com/loruorg/mossflux mossflux-cli
+mossflux substruct --smiles my.smi --smarts 'C(=O)[OH]' --format tsv > hits.tsv
+```
+
+More: [Get started](https://mossflux.com/docs/), [CLI](https://mossflux.com/docs/cli),
+[API](https://mossflux.com/docs/api), [Deploy](https://mossflux.com/docs/deploy).
 
 ## Results
 
-ChEMBL 37 (2.9M compounds), exact on every query. Details and conditions:
-[docs/benchmarks.md](docs/benchmarks.md).
+ChEMBL 37 (2.9M compounds), exact on every query. Conditions:
+[Benchmarks](https://mossflux.com/docs/benchmarks).
 
 - **Similarity vs FPSim2: 2.64x to 2.77x faster**, 256-bit Morgan r=2,
   AMD EPYC 9645 VM, 1 thread against 1 worker, search only, median of 11.
@@ -98,18 +58,12 @@ ChEMBL 37 (2.9M compounds), exact on every query. Details and conditions:
 - **Substructure: 5.2 to 160 M molecules/s/thread** over a 17-query battery,
   2M ChEMBL, 8 threads, EPYC 9645 VM, median of 3.
 
-## Documentation
+## Contributing
 
-| Document | Content |
-| --- | --- |
-| [docs/design.md](docs/design.md) | Architecture, design decisions, rejected ideas. |
-| [docs/benchmarks.md](docs/benchmarks.md) | All results with conditions; Arthor comparison; how to reproduce. |
-| [docs/correctness.md](docs/correctness.md) | Exactness invariants and test gates. |
-| [docs/development.md](docs/development.md) | Build, test, datasets, traps. |
-| [docs/api.md](docs/api.md) | Service API. |
-| [docs/deploy.md](docs/deploy.md) | Docker and deployment. |
-| [SECURITY.md](SECURITY.md) | Guarantees on untrusted input; reporting. |
-| [CHANGELOG.md](CHANGELOG.md) | Releases. |
+Build, test and dataset notes: [Development](https://mossflux.com/docs/development).
+Exactness rules: [Correctness](https://mossflux.com/docs/correctness). The docs
+are the Markdown files in [`docs/`](docs/); the site build is in
+[`scripts/site/`](scripts/site/). Vulnerabilities: [SECURITY.md](SECURITY.md).
 
 ## Licence
 

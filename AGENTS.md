@@ -8,7 +8,8 @@ library. Exactness comes before speed.
 
 ## Read
 
-- [docs/development.md](docs/development.md): commands, CLI, datasets, traps.
+- [docs/development.md](docs/development.md): commands, datasets, traps, website.
+- [docs/cli.md](docs/cli.md): CLI subcommands and flags.
 - [docs/correctness.md](docs/correctness.md): the 13 invariants and the gates.
 - [docs/design.md](docs/design.md): architecture, decisions, rejected ideas.
   Do not propose a rejected idea again without new evidence.

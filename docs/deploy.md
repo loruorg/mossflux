@@ -1,14 +1,16 @@
 # Deploy
 
-The image is `loruorg/mossflux:latest` on Docker Hub (x86-64). It holds only the `mossflux`
-binary (distroless, non-root, user 65532). Give it a SMILES file; it builds the
-index in memory at start and serves REST and MCP on 8080 and gRPC on 50051.
+Run the server with Docker, Docker Compose or Kubernetes, configure it and size it.
+
+The image is `loruorg/mossflux:latest` on Docker Hub (x86-64). It holds only the
+`mossflux` binary (distroless, non-root, user 65532). Give it a SMILES file; it
+builds the index in memory at start and serves REST and MCP on 8080 and gRPC on
+50051.
 
 ## Data
 
-Any SMILES file works: `.smi` (`SMILES name`), TSV with a `smiles` or
-`canonical_smiles` header, or `ID<TAB>SMILES`. Gzip is read directly. ChEMBL 37
-(2.9M molecules, 279 MiB, CC BY-SA 3.0):
+Any SMILES file works, gzip included ([column rules](cli.md#input-files)).
+ChEMBL 37 (2.9M molecules, 279 MiB, CC BY-SA 3.0):
 
 ```sh
 mkdir -p data && curl -fL -o data/chembl_37_chemreps.txt.gz \
@@ -60,7 +62,7 @@ kubectl port-forward svc/mossflux 8080:8080
 
 Every flag has an environment variable.
 
-| Env | Flag | Default | |
+| Env | Flag | Default | Description |
 | --- | --- | --- | --- |
 | `MOSSFLUX_DB` | `--db` | required | `NAME=PATH`, comma-separated for several |
 | `MOSSFLUX_LISTEN` | `--listen` | `0.0.0.0:8080` | REST and MCP |
@@ -71,14 +73,14 @@ Every flag has an environment variable.
 | `MOSSFLUX_SMILES_COL`, `MOSSFLUX_ID_COL` | | auto | 1-based columns |
 | `RUST_LOG` | | `info` | Log filter (stderr) |
 
-Request limits: [api.md](api.md#limits).
+Request limits: [API](api.md#limits).
 
 ## Sizing
 
 Measured on ChEMBL 37 (2,896,304 molecules indexed, 1,515 skipped), Apple M4
 Max, all cores, machine under load:
 
-| | |
+| Measure | ChEMBL 37 |
 | --- | --- |
 | Build at start | 33 to 41 s |
 | Index memory (`memory_bytes`) | 5.1 GB |

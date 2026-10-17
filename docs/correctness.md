@@ -1,5 +1,7 @@
 # Correctness
 
+What "exact" means in mossflux, and the tests that prove it.
+
 Both engines must return exactly what a brute-force scan returns. If a speed-up
 needs a rule below relaxed, the speed-up is rejected.
 

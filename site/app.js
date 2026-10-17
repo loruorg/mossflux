@@ -20,11 +20,13 @@
   var secs = [].slice.call(doc.querySelectorAll('.sec'));
 
   /* ------------------------------------------------------------ flow */
-  var flow = (function () {
+  // Set when the GPU is ready. Without a GPU (software WebGL), one still frame.
+  var flow = null;
+  (function () {
     var cv = $('flux');
-    var g = cv.getContext('webgl', { antialias: false, alpha: false, depth: false, preserveDrawingBuffer: false });
-    if (!g) { return null; }
     var small = innerWidth < 760;
+    var g = cv.getContext('webgl', { antialias: false, alpha: false, depth: false, preserveDrawingBuffer: false, failIfMajorPerformanceCaveat: true });
+    if (!g) { flow = still(cv, small); return; }
     var N = small ? 40000 : 110000;
 
     var VS = [
@@ -93,21 +95,27 @@
       var p = g.createProgram();
       [[g.VERTEX_SHADER, vs], [g.FRAGMENT_SHADER, fs]].forEach(function (x) {
         var s = g.createShader(x[0]); g.shaderSource(s, x[1]); g.compileShader(s);
-        if (!g.getShaderParameter(s, g.COMPILE_STATUS)) { throw new Error(g.getShaderInfoLog(s)); }
         g.attachShader(p, s);
       });
       g.linkProgram(p);
       return p;
     }
-    var P, F, S;
-    try { P = prog(VS, FS); F = prog(QV, FADE); S = prog(QV, SHOW); } catch (e) { return null; }
-
-    var seeds = new Float32Array(N * 4), r = 1;
-    for (var i = 0; i < N * 4; i++) { r = (r * 16807) % 2147483647; seeds[i] = r / 2147483647; }
-    var sb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, sb); g.bufferData(g.ARRAY_BUFFER, seeds, g.STATIC_DRAW);
-    var qb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, qb); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
-    var U = {};
-    ['u_k', 'u_t', 'u_aspect', 'u_px', 'u_off', 'u_stir'].forEach(function (n) { U[n] = g.getUniformLocation(P, n); });
+    var P = prog(VS, FS), F = prog(QV, FADE), S = prog(QV, SHOW), progs = [P, F, S];
+    var par = g.getExtension('KHR_parallel_shader_compile');
+    var sb, qb, U = {};
+    // With KHR_parallel_shader_compile the shaders compile off the main thread;
+    // the first status query waits for them, so ask only when they are done.
+    function ready() {
+      if (par && !progs.every(function (p) { return g.getProgramParameter(p, par.COMPLETION_STATUS_KHR); })) { requestAnimationFrame(ready); return; }
+      if (!progs.every(function (p) { return g.getProgramParameter(p, g.LINK_STATUS); })) { return; }
+      var seeds = new Float32Array(N * 4), r = 1;
+      for (var i = 0; i < N * 4; i++) { r = (r * 16807) % 2147483647; seeds[i] = r / 2147483647; }
+      sb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, sb); g.bufferData(g.ARRAY_BUFFER, seeds, g.STATIC_DRAW);
+      qb = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, qb); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
+      ['u_k', 'u_t', 'u_aspect', 'u_px', 'u_off', 'u_stir'].forEach(function (n) { U[n] = g.getUniformLocation(P, n); });
+      resize();
+      flow = { resize: resize, frame: frame };
+    }
 
     var fb = [], tx = [], W = 0, H = 0, cur = 0;
     function target(w, h) {
@@ -153,9 +161,34 @@
       quad(S);
       cur = nxt;
     }
-    resize();
-    return { resize: resize, frame: frame };
+    ready();
   })();
+
+  // The vortex as one still 2D frame: the same formula as vortex() above, at t = 0.
+  function still(cv, small) {
+    var x = cv.getContext('2d'), W = 0, H = 0;
+    function draw() {
+      var w = Math.round(cv.clientWidth * DPR), h = Math.round(cv.clientHeight * DPR);
+      if (!x || (w === W && h === H)) { return; }
+      W = cv.width = w; H = cv.height = h;
+      x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = '#fff';
+      var r = 1, s = [0, 0, 0, 0], dot = 1.4 * DPR, aspect = W / H, off = small ? 0 : 0.36;
+      for (var i = 0; i < 16000; i++) {
+        for (var j = 0; j < 4; j++) { r = (r * 16807) % 2147483647; s[j] = r / 2147483647; }
+        var rad = 0.16 + 0.84 * Math.pow(s[1], 0.65);
+        var th = s[0] * 6.2832 + Math.floor(s[2] * 3) * 2.0944 + rad * 2.8;
+        var px = Math.cos(th) * rad, py = (s[3] - 0.5) * 0.1 * (1.15 - rad), pz = Math.sin(th) * rad;
+        var y = py * Math.cos(1.08) - pz * Math.sin(1.08), z = py * Math.sin(1.08) + pz * Math.cos(1.08) + 2.3;
+        var cx = px * 1.7 / z / aspect * 1.25 + off, cy = y * 1.7 / z + 0.02;
+        x.globalAlpha = 0.3 * (1.25 - rad * 0.6);
+        x.fillRect((cx + 1) / 2 * W, (1 - cy) / 2 * H, dot, dot);
+      }
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    }
+    draw();
+    return { resize: draw, frame: function () {} };
+  }
 
   /* ------------------------------------------------------------ scroll */
   var centers = [], k = 0, last = performance.now(), t = 0, lastY = scrollY, stir = 0;
@@ -181,7 +214,6 @@
       inn.dataset.v = v;
       inn.style.setProperty('--v', v.toFixed(3));
       inn.style.setProperty('--dir', r.top > 0 ? 1 : -1);
-      inn.style.visibility = v < 0.01 ? 'hidden' : 'visible';
     });
   }
   function tick(now) {
@@ -233,21 +265,43 @@
     sim: [['aspirin', 'CC(=O)Oc1ccccc1C(=O)O'], ['caffeine', 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C'], ['imatinib', 'Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1'], ['ibuprofen', 'CC(C)Cc1ccc(cc1)C(C)C(=O)O']],
     sub: [['indole', 'c1ccc2[nH]ccc2c1'], ['sulfonamide', 'S(=O)(=O)N'], ['steroid core', 'C1CCC2C(C1)CCC1C2CCC2CCCC12'], ['carboxylic acid', 'C(=O)[OH]']]
   };
-  var mode = 'sim', busy = false, q = $('q');
+  var mode = 'sim', busy = false, q = $('q'), modes = [].slice.call(doc.querySelectorAll('.modes button'));
   function setMode(m) {
     mode = m;
-    doc.querySelectorAll('.modes button').forEach(function (b) { b.setAttribute('aria-checked', b.dataset.mode === m); });
+    modes.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.mode === m); b.tabIndex = b.dataset.mode === m ? 0 : -1; });
     $('chips').innerHTML = '';
     PRE[m].forEach(function (p) {
       var b = doc.createElement('button'); b.type = 'button'; b.textContent = p[0]; b.title = p[1];
-      b.onclick = function () { q.value = p[1]; run(); };
+      b.onclick = function () { q.value = p[1]; run(true); };
       $('chips').appendChild(b);
     });
   }
-  doc.querySelectorAll('.modes button').forEach(function (b) {
-    b.onclick = function () { setMode(b.dataset.mode); q.value = PRE[b.dataset.mode][0][1]; run(); };
+  function pick(b) { if (b.dataset.mode !== mode) { setMode(b.dataset.mode); q.value = PRE[mode][0][1]; run(true); } }
+  modes.forEach(function (b, i) {
+    b.onclick = function () { pick(b); };
+    b.onkeydown = function (e) {
+      var d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (!d) { return; }
+      e.preventDefault();
+      var n = modes[(i + d + modes.length) % modes.length]; n.focus(); pick(n);
+    };
   });
-  $('q-form').onsubmit = function (e) { e.preventDefault(); run(); };
+  $('q-form').onsubmit = function (e) { e.preventDefault(); run(true); };
+
+  // A search is a link: ?q=<query>&mode=sub#demo opens the demo with it.
+  function link() {
+    var u = new URLSearchParams(location.search);
+    u.set('q', q.value.trim());
+    if (mode === 'sub') { u.set('mode', 'sub'); } else { u.delete('mode'); }
+    return location.origin + location.pathname + '?' + u + '#demo';
+  }
+  $('r-share').onclick = function () {
+    var b = this, url = link();
+    var p = navigator.share && matchMedia('(pointer: coarse)').matches
+      ? navigator.share({ title: 'mossflux search', url: url })
+      : navigator.clipboard.writeText(url).then(function () { b.textContent = 'Link copied'; setTimeout(function () { b.textContent = 'Copy link'; }, 1600); });
+    p.catch(function () {});
+  };
 
   function tween(el, to, f) {
     var from = parseFloat(el.dataset.v || 0), s = performance.now(); el.dataset.v = to;
@@ -330,10 +384,11 @@
   }
 
   var seedN = 1;
-  function run() {
+  function run(user) {
     var text = q.value.trim();
     if (!text || busy) { return; }
     busy = true; $('err').hidden = true;
+    if (user) { history.replaceState(null, '', link()); }
     var m = mode;
     var p = m === 'sim' ? api('/v1/similarity', { smiles: text, threshold: 0.7, limit: 6 })
       : api('/v1/substructure', { smarts: text, limit: 40, timeout_ms: 8000 });
@@ -347,6 +402,8 @@
       var kept = m === 'sim' ? r.scanned : r.screened;
       $('r-skip').textContent = (100 * (1 - kept / r.total)).toFixed(1) + '% ' + (m === 'sim' ? 'skipped by the bound' : 'ruled out before matching');
       $('r-rate').textContent = fmt(r.total / (r.took_us / 1e6) / 1e6) + ' M molecules/s on this demo box';
+      $('r-say').textContent = fmt(r.count) + (r.count === 1 ? ' hit' : ' hits') + ' in ' + ms.toFixed(ms < 10 ? 2 : 1) + ' ms across ' + fmt(r.total) + ' molecules.';
+      $('r-share').hidden = false;
       animStrip(r); mols(r);
       doc.querySelectorAll('#chips button').forEach(function (b) { b.classList.toggle('on', b.title === text); });
     }).catch(function (e) {
@@ -356,10 +413,27 @@
       $('err').hidden = false;
     }).then(function () { busy = false; });
   }
-  setMode('sim');
+  var given = new URLSearchParams(location.search);
+  setMode(given.get('mode') === 'sub' ? 'sub' : 'sim');
+  if (given.get('q')) { q.value = given.get('q').slice(0, 4096); } else if (mode === 'sub') { q.value = PRE.sub[0][1]; }
   new IntersectionObserver(function (es, ob) {
     if (es[0].isIntersecting) { loadSD(); run(); ob.disconnect(); }
   }, { rootMargin: '0px 0px -30% 0px' }).observe($('demo'));
+
+  /* ------------------------------------------------------------ copy */
+  if (navigator.clipboard) {
+    doc.querySelectorAll('.cmds .cb').forEach(function (cb) {
+      var b = doc.createElement('button');
+      function label(t) { b.textContent = t; b.setAttribute('aria-label', t === 'Copy' ? 'Copy command' : t); }
+      b.type = 'button'; b.className = 'copy'; label('Copy');
+      b.onclick = function () {
+        navigator.clipboard.writeText(cb.querySelector('pre').textContent.trim()).then(function () {
+          label('Copied'); setTimeout(function () { label('Copy'); }, 1600);
+        }, function () {});
+      };
+      cb.appendChild(b);
+    });
+  }
 
   /* ------------------------------------------------------------ start */
   measure();

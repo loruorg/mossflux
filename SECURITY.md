@@ -1,5 +1,7 @@
 # Security
 
+How to report a vulnerability, and what mossflux guarantees on untrusted input.
+
 ## Reporting
 
 Report a vulnerability through the GitHub security advisory form ("Security"
@@ -22,7 +24,7 @@ Two kinds of problem count:
   `tonic` and `serde`. CI runs `cargo audit`.
 - Malformed or oversized input to the parsers, `SubstructIndex` and the FPS
   loader is a returned error with a byte position or line number. Limits are in
-  [docs/design.md](docs/design.md#limits-and-deadlines) and pinned by
+  [Design](docs/design.md#limits-and-deadlines) and pinned by
   `crates/mossflux-substruct/tests/hostile_input.rs`.
 - Search time is not bounded by default: subgraph matching is NP-complete. A
   service that takes queries from others must set a deadline

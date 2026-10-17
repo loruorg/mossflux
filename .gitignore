@@ -26,3 +26,10 @@ HANDOFF.md
 
 # Landing-page source videos (regenerable, paid; see scripts/site/gen_videos.mjs)
 /scripts/site/out/
+
+# Website build output and build cache
+/dist/
+/dist.tmp-*/
+/scripts/site/node_modules/
+/scripts/site/.cache/
+/.wrangler/

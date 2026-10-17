@@ -1,5 +1,7 @@
 # Development
 
+Build and test mossflux, get the datasets, avoid the known traps, and publish this site.
+
 ## Commands
 
 ```sh
@@ -14,21 +16,7 @@ cargo audit
 
 CI (`.github/workflows/ci.yml`) runs all of these, with tests on Linux and
 macOS. All must pass before a change is done. Tests at reduced sizes run by
-default; see [correctness.md](correctness.md) to arm the full gates.
-
-## CLI
-
-`mossflux` writes results to stdout and diagnostics to stderr. Exit 0 on
-success (also on a closed pipe), 1 on error, 2 on usage error.
-
-| Subcommand | Required | Does |
-| --- | --- | --- |
-| `search` | `--fps` and one of `--query-index` (file record number), `--query-id`, `--query` (hex, file width) | One similarity query. `--threshold` or `--knn`; `--format tsv`. |
-| `substruct` | `--smiles` and `--smarts` (repeatable) or `--smarts-file` | Exact SMARTS search; index built per run. `--count`, `--strict`, `--timeout`, `--format tsv`. |
-| `info` | `--fps` | Arena statistics. |
-| `tanimoto` | two hex strings | Similarity of two fingerprints. |
-| `bench` | `--fps` or `--synth-n` | Similarity throughput; `--brute`, `--inverted`, `--fold`, `--abandon`. |
-| `substruct-bench` | none | Substructure build, memory and latency over a SMARTS battery. |
+default; see [Correctness](correctness.md) to arm the full gates.
 
 ## Datasets
 
@@ -50,6 +38,22 @@ and `.h5` with `scripts/reproduce_arthor_compare.sh`.
 python scripts/gen_fingerprints.py data/chembl_37_chemreps.txt.gz \
   data/chembl_37_256.fps --nbits 256
 ```
+
+## Website
+
+mossflux.com is built from `site/` (the home page) and `docs/` (these pages)
+into `dist/`. Each doc page is also published as Markdown, and `/llms.txt`
+lists them all. Add a new page to `NAV` in `scripts/site/build.mjs`.
+
+```sh
+npm install --prefix scripts/site
+node scripts/site/build.mjs     # writes dist/
+npx wrangler dev                # http://localhost:8787
+npx wrangler deploy             # runs the build, then deploys
+```
+
+The build fails on a broken relative link. Share images need Google Chrome; without
+it, every page uses `site/og.jpg`.
 
 ## Traps
 
@@ -78,7 +82,7 @@ python scripts/gen_fingerprints.py data/chembl_37_chemreps.txt.gz \
     `verify_candidates` re-runs the census and measures a cost `search` does not
     pay.
 12. **Perception changes.** Prove them neutral with the full-corpus hash check
-    in [correctness.md](correctness.md); unit tests cannot see all molecules.
+    in [Correctness](correctness.md); unit tests cannot see all molecules.
 13. **`--query-index`** is a file record number, not an arena row.
 14. **New census-exact classes.** Test with `verify_candidates` over every row:
     the screen can hide false positives on small corpora.

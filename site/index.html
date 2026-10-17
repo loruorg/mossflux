@@ -16,6 +16,7 @@
 <meta property="og:image" content="https://mossflux.com/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="mossflux: exact similarity search at billions of molecules per second">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://mossflux.com/og.jpg">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,17 +24,21 @@
 <link rel="preconnect" href="https://api.mossflux.com" crossorigin>
 <link rel="preload" href="fonts/Erode-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="site.css">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"mossflux","description":"Exact similarity and SMARTS substructure search over molecular fingerprints, in Rust.","url":"https://mossflux.com/","codeRepository":"https://github.com/loruorg/mossflux","programmingLanguage":"Rust","license":"https://spdx.org/licenses/MIT.html"}</script>
 </head>
 <body>
+<a class="skip" href="#about">Skip to content</a>
 
 <canvas id="flux" aria-hidden="true"></canvas>
 
 <header class="top">
   <a class="logo" href="#about"><span class="mark"></span>mossflux</a>
-  <nav>
+  <nav aria-label="Site">
     <a href="#bench">Benchmarks</a>
     <a href="#demo">Demo</a>
     <a href="#get">Download</a>
+    <a class="keep" href="/docs/">Docs</a>
     <a class="pill" href="https://github.com/loruorg/mossflux">GitHub</a>
   </nav>
 </header>
@@ -66,7 +71,7 @@
         <div class="bars"></div>
       </figure>
     </div>
-    <p class="fine">FPSim2 at 256 bits on EPYC: mossflux is 2.6 to 2.8 times faster. RDKit times are extrapolated from 1M and 100K subsets. All conditions: <a href="https://github.com/loruorg/mossflux/blob/main/docs/benchmarks.md">benchmarks</a>.</p>
+    <p class="fine">FPSim2 at 256 bits on EPYC: mossflux is 2.6 to 2.8 times faster. RDKit times are extrapolated from 1M and 100K subsets. All conditions: <a href="/docs/benchmarks">benchmarks</a>.</p>
   </div>
 </section>
 
@@ -84,17 +89,19 @@
       <button class="go" type="submit">Search</button>
     </form>
     <div class="chips" id="chips"></div>
-    <div class="res" aria-live="polite">
-      <div class="r-line">
+    <div class="res">
+      <div class="r-line" aria-hidden="true">
         <span class="r-big"><b id="r-hits">–</b><i id="r-hits-k">hits</i></span>
         <span class="r-big"><b id="r-ms">–</b><i>ms</i></span>
         <span class="r-of" id="r-of"></span>
       </div>
+      <p class="vh" role="status" id="r-say"></p>
       <canvas id="strip" aria-hidden="true"></canvas>
-      <div class="r-leg"><span id="r-skip"></span><span id="r-rate"></span></div>
+      <div class="r-leg" aria-hidden="true"><span id="r-skip"></span><span id="r-rate"></span></div>
       <div class="mols" id="mols"></div>
+      <button class="share" type="button" id="r-share" hidden>Copy link</button>
     </div>
-    <p class="err" id="err" hidden></p>
+    <p class="err" id="err" role="alert" hidden></p>
   </div>
 </section>
 
@@ -103,16 +110,17 @@
     <h2>Run it on your library.</h2>
     <div class="cmds">
       <p class="k">Docker, x86-64</p>
-<pre><code>docker run -p 8080:8080 -v "$PWD:/data:ro" loruorg/mossflux \
-  serve --db /data/library.smi</code></pre>
+      <div class="cb"><pre><code>docker run -p 8080:8080 -v "$PWD:/data:ro" loruorg/mossflux \
+  serve --db /data/library.smi</code></pre></div>
       <p class="k">From source</p>
-<pre><code>cargo install --git https://github.com/loruorg/mossflux mossflux-cli</code></pre>
+      <div class="cb"><pre><code>RUSTFLAGS="-C target-cpu=native" cargo install \
+  --git https://github.com/loruorg/mossflux mossflux-cli</code></pre></div>
     </div>
     <p class="desc">One binary. REST, gRPC and MCP. Any SMILES file, gzip included.</p>
     <div class="cta">
-      <a class="btn hi" href="https://github.com/loruorg/mossflux/tree/main/docs">Documentation</a>
-      <a class="btn" href="https://github.com/loruorg/mossflux/blob/main/docs/deploy.md">Docker and Kubernetes</a>
-      <a class="btn" href="https://github.com/loruorg/mossflux/blob/main/docs/api.md">API</a>
+      <a class="btn hi" href="/docs/">Documentation</a>
+      <a class="btn" href="/docs/deploy">Docker and Kubernetes</a>
+      <a class="btn" href="/docs/api">API</a>
     </div>
     <p class="fine foot">MIT or Apache-2.0 · Demo data: ChEMBL 37, CC BY-SA 3.0</p>
   </div>
