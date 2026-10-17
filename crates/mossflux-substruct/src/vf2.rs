@@ -715,9 +715,7 @@ impl Matcher {
         self.epoch = match self.epoch.checked_add(1) {
             Some(e) => e,
             None => {
-                for slot in &mut self.used_epoch {
-                    *slot = 0;
-                }
+                self.used_epoch.fill(0);
                 1
             }
         };
