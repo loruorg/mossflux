@@ -41,9 +41,15 @@ python scripts/gen_fingerprints.py data/chembl_37_chemreps.txt.gz \
 
 ## Website
 
-mossflux.com is built from `site/` (the home page) and `docs/` (these pages)
-into `dist/`. Each doc page is also published as Markdown, and `/llms.txt`
-lists them all. Add a new page to `NAV` in `scripts/site/build.mjs`.
+mossflux.com is built from `site/` (the home page), `docs/` (these pages)
+and `blog/` into `dist/`. Each doc page is also published as Markdown, and
+`/llms.txt` lists them all. Add a new page to `NAV` in `scripts/site/build.mjs`.
+
+A blog post is `blog/{slug}.md`, served at `/blog/{slug}`. Front matter:
+`title`, `description`, `publishDate` (YYYY-MM-DD), and optionally `updatedDate`,
+`tags`, `faq` (a list of `question` and `answer`), `author`, `image`, `image_alt`
+and `schema_json`. The body has no H1. Images go in `blog/{slug}/` and are
+served at `/blog/{slug}/{file}`.
 
 ```sh
 npm install --prefix scripts/site
@@ -51,6 +57,8 @@ node scripts/site/build.mjs     # writes dist/
 npx wrangler dev                # http://localhost:8787
 npx wrangler deploy             # runs the build, then deploys
 ```
+
+A push to main that changes the site deploys it (`.github/workflows/deploy.yml`).
 
 The build fails on a broken relative link. Share images need Google Chrome; without
 it, every page uses `site/og.jpg`.

@@ -1,11 +1,13 @@
 // Static site at mossflux.com (Cloudflare Workers static assets).
-// The build renders site/ and docs/ into dist/. Deploy: npx wrangler deploy
+// The build renders site/, docs/ and blog/ into dist/. A push to main deploys it
+// (.github/workflows/deploy.yml); by hand: npx wrangler deploy
 {
   "name": "mossflux",
+  "account_id": "3d80ae95892c48544332461606e57446",
   "compatibility_date": "2026-10-01",
   "build": {
     "command": "npm install --prefix scripts/site --no-audit --no-fund --silent && node scripts/site/build.mjs",
-    "watch_dir": ["site", "docs", "scripts/site/build.mjs"]
+    "watch_dir": ["site", "docs", "blog", "scripts/site/build.mjs", "scripts/site/blog.mjs"]
   },
   "assets": { "directory": "./dist", "not_found_handling": "404-page", "html_handling": "auto-trailing-slash" },
   "routes": [

@@ -1,0 +1,48 @@
+name: Deploy site
+
+# Builds mossflux.com (site/, docs/, blog/) and deploys it to Cloudflare on
+# every push to main that changes it. Blog posts are published by committing
+# blog/{slug}.md to main.
+on:
+  push:
+    branches: [main]
+    paths:
+      - blog/**
+      - docs/**
+      - site/**
+      - scripts/site/**
+      - CHANGELOG.md
+      - SECURITY.md
+      - wrangler.jsonc
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; the newest waiting push deploys last.
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # page dates come from git history
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Share images drawn by Chrome, cached by content.
+      - uses: actions/cache@v4
+        with:
+          path: scripts/site/.cache
+          key: site-cache-${{ github.sha }}
+          restore-keys: site-cache-
+      # wrangler runs the build in wrangler.jsonc, then uploads dist/.
+      - run: npx --yes wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

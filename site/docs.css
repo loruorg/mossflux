@@ -132,3 +132,6 @@ main { min-width: 0; padding: 40px 0 72px; }
   .pn .next { grid-column: auto; }
   .top nav { gap: 16px; }
 }
+@media (max-width: 420px) {
+  .top nav a[href="/#demo"] { display: none; }
+}

@@ -9,6 +9,8 @@
     "esbuild": "^0.28.2",
     "github-slugger": "^2.0.0",
     "marked": "^18.1.1",
-    "shiki": "^4.5.0"
+    "marked-footnote": "^1.4.0",
+    "shiki": "^4.5.0",
+    "yaml": "^2.9.1"
   }
 }
